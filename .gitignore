@@ -1,0 +1,20 @@
+# secrets: never commit
+.env
+secrets/*
+!secrets/README.txt
+
+# lead data and reports (personal data)
+Leads/Incoming/*
+Leads/Processed/*
+!Leads/Incoming/.gitkeep
+!Leads/Processed/.gitkeep
+output/*
+!output/.gitkeep
+
+.venv/
+__pycache__/
+.DS_Store
+docs/Lead Agent Architecture.docx
+
+# encrypted keys: kept out of git until the owner decides
+keys.vault

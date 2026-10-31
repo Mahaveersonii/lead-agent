@@ -1,0 +1,30 @@
+digraph LeadGenAgent {
+  graph [rankdir=TB, fontname="Helvetica", fontsize=12, nodesep=0.35, ranksep=0.32, pad=0.3, dpi=200];
+  node  [shape=box, style="rounded,filled", fillcolor="#F2F2F2", color="#555555", fontname="Helvetica", fontsize=11, margin="0.18,0.08", width=4.6];
+  edge  [color="#555555", arrowsize=0.7];
+
+  human [label="TEAM (Mon / Tue / Wed, before 6 PM)\n1. Export from IG Email Extractor → save CSV in Leads/Incoming\n2. Duplicate a new \"AS-XX (New-mails)\" campaign in Instantly (leave as Draft)", fillcolor="#FFFFFF", color="#000000", penwidth=1.6];
+
+  subgraph cluster_agent {
+    label="Lead Agent  (runs on the team's computer:  python run.py)";
+    fontname="Helvetica-Bold"; fontsize=12; color="#999999"; style="rounded";
+
+    a1 [label="1. Intake  (code)\nReads the IG Email Extractor CSV"];
+    a2 [label="2. Clean & Filter  (code)\nAlready in master sheet? · duplicate · private · 2k–300k followers\nblocked words (agency/fan/meme) · must match a team keyword"];
+    a3 [label="3. Website Email Finder  (code)\nNo email? Looks on their own website"];
+    a4 [label="4. Fit Scorer  (local AI: Qwen3 8B via Ollama, free)\nTarget niche? Sells something? Score 0–10 · reads first name"];
+    a5 [label="5. Email Check  (Bouncify API)\nOnly \"deliverable\" emails continue"];
+    a6 [label="6. First-Line Writer + Checker  (local AI: Qwen3 8B)\nOne line from their bio · second AI pass rejects made-up facts\nsafe fallback line if both attempts fail"];
+    a7 [label="7. Sender  (Instantly API)\nAdds leads to the newest DRAFT \"(New-mails)\" campaign\nstops if no fresh Draft campaign exists"];
+    a8 [label="8. Sheet Writer  (Google Sheets API)\nAdds the sent leads to the Cold Email tab"];
+
+    a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> a7 -> a8;
+  }
+
+  report [label="Report CSV in output/\nevery lead + kept / rejected + reason + first line", shape=note, fillcolor="#FFFFFF", width=3.4];
+  inst  [label="TEAM reviews, then STARTS the campaign in Instantly\n(the agent never starts a campaign)", fillcolor="#FFFFFF", color="#000000", penwidth=1.6];
+
+  human -> a1;
+  a8 -> inst;
+  a8 -> report [style=dashed];
+}
