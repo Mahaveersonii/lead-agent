@@ -18,3 +18,4 @@ docs/Lead Agent Architecture.docx
 
 # encrypted keys: kept out of git until the owner decides
 keys.vault
+.claude/

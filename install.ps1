@@ -36,4 +36,4 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 Say "5/5  Checking everything"
 .\.venv\Scripts\python -W ignore check_setup.py
 
-"`nSetup finished. Daily use: double-click '2 - Test run (Windows).bat', then '3 - LIVE run (Windows).bat'."
+"`nSetup finished. Daily use: double-click '0 - Open Dashboard (Windows).bat'."

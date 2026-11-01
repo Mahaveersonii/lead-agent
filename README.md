@@ -30,11 +30,19 @@ Running it again is safe. It skips anything already done.
 
 No GitHub account is needed. Put `keys.vault` into the lead-gen-agent folder, then run `.venv/bin/python keys_vault.py unlock` (Windows: `.venv\Scripts\python keys_vault.py unlock`).
 
+## Dashboard (easiest way)
+
+Double-click **0 - Open Dashboard**. The browser opens `http://127.0.0.1:8765` with buttons for everything:
+setup check, drop the CSV, Test run, LIVE run (type YES), live progress, and the history of every run with its leads.
+Keep the Terminal window it opens running while you use the page; closing it stops the dashboard.
+The page works only on this computer.
+
 ## Every campaign day (Mon, Tue, Wed, before 6 PM)
 
 1. Instantly: duplicate a new `AS-XX (New-mails)` campaign and leave it as a **Draft**.
-2. Save the IG Email Extractor export(s) into `Leads/Incoming`.
-3. Double-click **3 - LIVE run** and type `YES`. Wait until it says the leads were added.
+2. Double-click **0 - Open Dashboard** and drop the IG Email Extractor export(s) into **Lead files**
+   (or save them into `Leads/Incoming`).
+3. Press **LIVE run** and type `YES` (or double-click **3 - LIVE run**). Wait until it says the leads were added.
 4. Check the campaign in Instantly (preview 2-3 leads), then start it.
 
 The live run does every check itself: duplicates, filters, AI fit, Bouncify and first lines.

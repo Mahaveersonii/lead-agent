@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead Agent</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --text: #1d2330; --muted: #6b7385; --line: #e3e6ec;
+    --accent: #2f5bea; --ok: #16834a; --okbg: #e6f5ec; --bad: #c0362c; --badbg: #fbeceb;
+    --warn: #a86400; --warnbg: #fff4e0; --code: #0f1420; --codetext: #d6dbe6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #11141a; --card: #1a1e26; --text: #e6e9ef; --muted: #959cab; --line: #2b313c;
+      --accent: #6d8cff; --ok: #4cc583; --okbg: #15301f; --bad: #ff7b70; --badbg: #3a1c1a;
+      --warn: #ffb547; --warnbg: #3a2a10; --code: #0b0e14; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  header { padding: 18px 24px; border-bottom: 1px solid var(--line); background: var(--card); display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 18px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; display: grid; gap: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; min-width: 0; }
+  h2 { font-size: 15px; margin: 0 0 4px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  button { font: inherit; font-size: 14px; border: 1px solid var(--line); background: var(--card); color: var(--text);
+    padding: 8px 14px; border-radius: 7px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+  button.link { border: none; background: none; color: var(--accent); padding: 2px 4px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .checks { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; }
+  .checks li { padding: 8px 10px; border-radius: 7px; font-size: 13px; }
+  .checks .ok { background: var(--okbg); }
+  .checks .fix { background: var(--badbg); }
+  .checks b { margin-right: 6px; }
+  .drop { display: block; border: 2px dashed var(--line); border-radius: 9px; padding: 22px; text-align: center; color: var(--muted); cursor: pointer; }
+  .drop.over { border-color: var(--accent); color: var(--accent); }
+  .files { list-style: none; padding: 0; margin: 12px 0 0; }
+  .files li { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; gap: 8px; }
+  .files .name { overflow-wrap: anywhere; }
+  .steps { display: flex; gap: 6px; flex-wrap: wrap; margin: 14px 0 10px; }
+  .step { font-size: 12px; padding: 4px 9px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+  .step.done { background: var(--okbg); color: var(--ok); border-color: transparent; }
+  .step.now { border-color: var(--accent); color: var(--accent); }
+  .step small { opacity: .8; margin-left: 4px; }
+  .banner { padding: 10px 12px; border-radius: 8px; font-size: 14px; margin-bottom: 10px; display: none; }
+  .banner.show { display: block; }
+  .banner.ok { background: var(--okbg); color: var(--ok); }
+  .banner.bad { background: var(--badbg); color: var(--bad); }
+  .banner.run { background: var(--warnbg); color: var(--warn); }
+  pre { background: var(--code); color: var(--codetext); border-radius: 8px; padding: 12px; font: 12px/1.55 ui-monospace, Menlo, monospace;
+    height: 260px; overflow: auto; margin: 0; white-space: pre-wrap; word-break: break-word; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tag { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 99px; }
+  .tag.live { background: var(--okbg); color: var(--ok); }
+  .tag.test { background: var(--line); color: var(--muted); }
+  .scroll { overflow-x: auto; }
+  dialog { border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); padding: 20px; width: min(1100px, 94vw); }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  dialog.small { width: min(440px, 94vw); }
+  input[type=text], select { font: inherit; padding: 8px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--text); }
+  .reasons { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 12px; }
+  .reasons span { font-size: 12px; background: var(--bg); border: 1px solid var(--line); padding: 3px 8px; border-radius: 6px; }
+  .detail-table { max-height: 60vh; overflow: auto; }
+  .detail-table td { max-width: 340px; overflow-wrap: anywhere; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Lead Agent</h1>
+    <div class="sub">IG export → clean → AI fit → Bouncify → first line → Instantly → master sheet</div>
+  </div>
+</header>
+
+<main>
+  <div class="grid">
+    <section>
+      <h2>1. Setup check</h2>
+      <p class="hint">Tests the keys, Ollama, Instantly campaign, Bouncify credits and the master sheet. Sends nothing.</p>
+      <button id="checkBtn" data-kind="check">Run setup check</button>
+      <ul class="checks" id="checks"></ul>
+    </section>
+
+    <section>
+      <h2>2. Lead files</h2>
+      <p class="hint">Drop the IG Email Extractor CSV here. It is saved in Leads/Incoming.</p>
+      <label class="drop" id="drop">Drop CSV here, or click to choose
+        <input type="file" id="picker" accept=".csv" multiple hidden>
+      </label>
+      <ul class="files" id="files"></ul>
+    </section>
+  </div>
+
+  <section>
+    <h2>3. Run</h2>
+    <p class="hint">Before a LIVE run: duplicate a new <b>AS-XX (New-mails)</b> campaign in Instantly and leave it as a Draft. Live runs work Mon–Wed.</p>
+    <div class="row">
+      <button class="danger" id="liveBtn">LIVE run</button>
+      <button data-kind="test">Test run (free, sends nothing)</button>
+      <button data-kind="test_verify">Test run + Bouncify (uses credits)</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+    <div class="steps" id="steps"></div>
+    <div class="banner" id="banner"></div>
+    <pre id="log">No run yet.</pre>
+  </section>
+
+  <section>
+    <div class="row" style="justify-content: space-between">
+      <div><h2>Run history</h2><p class="hint">Every run saves a report in the output folder.</p></div>
+      <button class="link" id="refreshHist">Refresh</button>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>When</th><th>Type</th><th class="num">Leads in</th><th class="num">Rejected</th><th class="num">Passed</th><th class="num">Sent to Instantly</th><th></th></tr></thead>
+        <tbody id="history"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<dialog class="small" id="liveDialog">
+  <h2>Start a LIVE run?</h2>
+  <p class="hint">Leads will be added to the newest Draft (New-mails) campaign in Instantly and to the master sheet. This cannot be undone from here.</p>
+  <p>Type <b>YES</b> to continue:</p>
+  <input type="text" id="yes" autocomplete="off" style="width:100%">
+  <div class="row" style="justify-content:flex-end;margin-top:14px">
+    <button id="liveCancel">Cancel</button>
+    <button class="danger" id="liveGo" disabled>Start LIVE run</button>
+  </div>
+</dialog>
+
+<dialog id="reportDialog">
+  <div class="row" style="justify-content: space-between">
+    <h2 id="reportTitle"></h2>
+    <div class="row">
+      <select id="reportFilter">
+        <option value="pass">Passed only</option>
+        <option value="Rejected">Rejected only</option>
+        <option value="">All leads</option>
+      </select>
+      <a id="reportDownload"><button>Download CSV</button></a>
+      <button id="reportClose">Close</button>
+    </div>
+  </div>
+  <div class="reasons" id="reasons"></div>
+  <div class="detail-table"><table><thead id="reportHead"></thead><tbody id="reportBody"></tbody></table></div>
+</dialog>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const api = async (path, opts = {}) => {
+  const res = await fetch(path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Something went wrong");
+  return data;
+};
+
+const STEPS = [
+  ["Load", /leads loaded/], ["Dedupe", /already used/], ["Clean", /After clean/], ["Website", /After website/],
+  ["AI fit", /After fit scoring/], ["Bouncify", /After email verification/], ["First lines", /First lines written/],
+  ["Instantly", /^\[.*\] Instantly: \{/], ["Sheet", /rows (added|would be added)/], ["Report", /Report:/],
+];
+
+let since = 0, lines = [], polling = null, currentKind = "";
+
+function renderSteps() {
+  if (currentKind === "check" || !currentKind) { $("steps").innerHTML = ""; return; }
+  let reached = -1; const counts = {};
+  lines.forEach((l) => STEPS.forEach(([name, re], i) => {
+    if (re.test(l)) { reached = Math.max(reached, i); const m = l.match(/: (\d+) left/) || l.match(/(\d+) leads loaded/); if (m) counts[name] = m[1]; }
+  }));
+  $("steps").innerHTML = STEPS.map(([name], i) =>
+    `<span class="step ${i <= reached ? "done" : i === reached + 1 ? "now" : ""}">${name}${counts[name] ? `<small>${counts[name]}</small>` : ""}</span>`).join("");
+}
+
+function renderChecks() {
+  const items = lines.filter((l) => /^\s+\[(OK|FIX)\]/.test(l));
+  $("checks").innerHTML = items.map((l) => {
+    const ok = l.includes("[OK]");
+    return `<li class="${ok ? "ok" : "fix"}"><b>${ok ? "✓" : "✗"}</b>${esc(l.replace(/^\s+\[(OK|FIX)\]\s*/, ""))}</li>`;
+  }).join("");
+}
+
+function setBusy(busy) {
+  document.querySelectorAll("[data-kind], #liveBtn").forEach((b) => (b.disabled = busy));
+  $("stopBtn").disabled = !busy;
+}
+
+function banner(text, kind) {
+  $("banner").className = `banner show ${kind}`;
+  $("banner").textContent = text;
+}
+
+async function poll() {
+  const s = await api(`/api/job?since=${since}`);
+  if (!s.kind) return;
+  currentKind = s.kind;
+  if (s.lines.length) {
+    lines = lines.concat(s.lines); since = s.total;
+    $("log").textContent = lines.join("\n");
+    $("log").scrollTop = $("log").scrollHeight;
+  }
+  renderSteps();
+  if (s.kind === "check") renderChecks();
+  setBusy(s.running);
+  if (s.running) {
+    banner(`${s.label} running since ${s.started.slice(11)}…`, "run");
+    if (!polling) polling = setInterval(poll, 1000);
+  } else {
+    clearInterval(polling); polling = null;
+    const lastError = [...lines].reverse().find((l) => l && !l.startsWith("---") && !l.startsWith("["));
+    if (s.exit_code === 0) banner(s.kind === "live" ? "LIVE run finished. Check the campaign in Instantly (preview 2–3 leads), then start it." : `${s.label} finished.`, "ok");
+    else banner(`${s.label} stopped: ${lastError || "see the log below"}`, "bad");
+    loadFiles(); loadHistory();
+  }
+}
+
+async function start(kind, body) {
+  try {
+    await api(`/api/run?kind=${kind}`, { method: "POST", body: JSON.stringify(body || {}) });
+    since = 0; lines = []; currentKind = kind;
+    $("log").textContent = ""; if (kind === "check") $("checks").innerHTML = "";
+    poll();
+  } catch (e) { banner(e.message, "bad"); }
+}
+
+document.querySelectorAll("[data-kind]").forEach((b) => b.addEventListener("click", () => start(b.dataset.kind)));
+$("stopBtn").onclick = () => api("/api/stop", { method: "POST" });
+
+$("liveBtn").onclick = () => { $("yes").value = ""; $("liveGo").disabled = true; $("liveDialog").showModal(); $("yes").focus(); };
+$("yes").oninput = () => ($("liveGo").disabled = $("yes").value !== "YES");
+$("liveCancel").onclick = () => $("liveDialog").close();
+$("liveGo").onclick = () => { $("liveDialog").close(); start("live", { confirm: "YES" }); };
+
+async function loadFiles() {
+  const files = await api("/api/files");
+  $("files").innerHTML = files.length ? files.map((f) =>
+    `<li><span class="name">${esc(f.name)}</span><span class="row"><span class="hint" style="margin:0">${f.rows} leads · ${esc(f.added)}</span>
+     <button class="link" data-remove="${esc(f.name)}">Remove</button></span></li>`).join("")
+    : `<li><span class="hint" style="margin:0">No files waiting. Add the day's export before a run.</span></li>`;
+  document.querySelectorAll("[data-remove]").forEach((b) => (b.onclick = async () => {
+    await api(`/api/remove?name=${encodeURIComponent(b.dataset.remove)}`, { method: "POST" }); loadFiles();
+  }));
+}
+
+async function upload(list) {
+  for (const file of list) {
+    try { await api(`/api/upload?name=${encodeURIComponent(file.name)}`, { method: "POST", body: file }); }
+    catch (e) { banner(e.message, "bad"); }
+  }
+  loadFiles();
+}
+const drop = $("drop");
+$("picker").onchange = (e) => upload(e.target.files);
+["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => upload(e.dataTransfer.files));
+
+async function loadHistory() {
+  const runs = await api("/api/history");
+  $("history").innerHTML = runs.length ? runs.map((r) => `<tr>
+    <td>${esc(r.when)}</td><td><span class="tag ${r.type === "LIVE" ? "live" : "test"}">${r.type}</span></td>
+    <td class="num">${r.total}</td><td class="num">${r.rejected}</td><td class="num">${r.passed}</td><td class="num">${r.type === "LIVE" ? r.sent : "–"}</td>
+    <td><button class="link" data-report="${esc(r.file)}">View leads</button></td></tr>`).join("")
+    : `<tr><td colspan="7" class="hint">No runs yet.</td></tr>`;
+  document.querySelectorAll("[data-report]").forEach((b) => (b.onclick = () => openReport(b.dataset.report)));
+}
+$("refreshHist").onclick = loadHistory;
+
+let report = null;
+async function openReport(file) {
+  report = await api(`/api/report?file=${encodeURIComponent(file)}`);
+  $("reportTitle").textContent = file;
+  $("reportDownload").href = `/api/download?file=${encodeURIComponent(file)}`;
+  $("reasons").innerHTML = report.reasons.length ? "<b style='font-size:12px'>Top reject reasons:</b> " +
+    report.reasons.map(([r, n]) => `<span>${esc(r)} · ${n}</span>`).join("") : "";
+  $("reportHead").innerHTML = "<tr>" + report.columns.map((c) => `<th>${esc(c.replace(/_/g, " "))}</th>`).join("") + "</tr>";
+  renderReport();
+  $("reportDialog").showModal();
+}
+function renderReport() {
+  const f = $("reportFilter").value;
+  const rows = report.rows.filter((r) => f === "pass" ? r.status !== "Rejected" : !f || r.status === f);
+  $("reportBody").innerHTML = rows.map((r) => "<tr>" + report.columns.map((c) =>
+    c === "profile_url" && r[c] ? `<td><a href="${esc(r[c])}" target="_blank" rel="noopener">open</a></td>` : `<td>${esc(r[c])}</td>`).join("") + "</tr>").join("")
+    || `<tr><td class="hint">No leads in this view.</td></tr>`;
+}
+$("reportFilter").onchange = renderReport;
+$("reportClose").onclick = () => $("reportDialog").close();
+
+loadFiles(); loadHistory(); poll();
+</script>
+</body>
+</html>

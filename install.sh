@@ -44,4 +44,4 @@ say "5/5  Checking everything"
 .venv/bin/python -W ignore check_setup.py || true
 
 echo
-echo "Setup finished. Daily use: double-click '2 - Test run (Mac).command', then '3 - LIVE run (Mac).command'."
+echo "Setup finished. Daily use: double-click '0 - Open Dashboard (Mac).command'."
