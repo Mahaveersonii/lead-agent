@@ -34,11 +34,14 @@ No GitHub account is needed. Put `keys.vault` into the lead-gen-agent folder, th
 
 1. Instantly: duplicate a new `AS-XX (New-mails)` campaign and leave it as a **Draft**.
 2. Save the IG Email Extractor export(s) into `Leads/Incoming`.
-3. Double-click **2 - Test run**. A report opens in `output/`. Skim it.
-4. Double-click **3 - LIVE run** and type `YES`.
-5. Check the campaign in Instantly, then start it.
+3. Double-click **3 - LIVE run** and type `YES`. Wait until it says the leads were added.
+4. Check the campaign in Instantly (preview 2-3 leads), then start it.
 
-The agent never starts a campaign. If the newest New-mails campaign is not a fresh Draft, it stops before adding anything.
+The live run does every check itself: duplicates, filters, AI fit, Bouncify and first lines.
+It stops without sending if there is no fresh Draft `(New-mails)` campaign, Ollama is not running,
+Bouncify credits run out, or it is not Mon-Wed. A report of every lead is saved in `output/`.
+
+**2 - Test run** is optional: use it once after setup, or after rules change. It sends nothing.
 
 **1 - Check setup** re-tests all connections at any time.
 
