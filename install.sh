@@ -31,8 +31,13 @@ if [ -z "$OLLAMA" ]; then
   rm -rf "$TMP"
   OLLAMA=/Applications/Ollama.app/Contents/Resources/ollama
 fi
-open -a Ollama || true
+open /Applications/Ollama.app 2>/dev/null || open -a Ollama 2>/dev/null || true
 for _ in $(seq 1 30); do curl -s localhost:11434/api/tags >/dev/null && break; sleep 2; done
+if ! curl -s localhost:11434/api/tags >/dev/null; then
+  echo "Starting the Ollama engine directly..."
+  nohup "$OLLAMA" serve >/dev/null 2>&1 &
+  for _ in $(seq 1 30); do curl -s localhost:11434/api/tags >/dev/null && break; sleep 2; done
+fi
 echo "Downloading the AI model (about 5 GB, only the first time)..."
 "$OLLAMA" pull qwen3:8b
 
