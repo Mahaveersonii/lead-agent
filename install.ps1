@@ -14,7 +14,7 @@ python --version
 Say "2/5  Agent libraries"
 if (-not (Test-Path .venv)) { python -m venv .venv }
 .\.venv\Scripts\python -m pip install -q --upgrade pip
-.\.venv\Scripts\python -m pip install -q -r requirements.txt
+.\.venv\Scripts\python -m pip install -q --prefer-binary -r requirements.txt
 "Leads\Incoming", "Leads\Processed", "output", "secrets" | ForEach-Object { New-Item -ItemType Directory -Force $_ | Out-Null }
 "Installed."
 

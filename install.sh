@@ -15,7 +15,7 @@ python3 --version
 say "2/5  Agent libraries"
 [ -d .venv ] || python3 -m venv .venv
 .venv/bin/python -m pip install -q --upgrade pip
-.venv/bin/python -m pip install -q -r requirements.txt
+.venv/bin/python -m pip install -q --prefer-binary -r requirements.txt
 mkdir -p Leads/Incoming Leads/Processed output secrets
 chmod +x ./*.command
 echo "Installed."
