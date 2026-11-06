@@ -102,11 +102,13 @@ def main() -> None:
     log(f"{len(leads)} leads loaded")
 
     used_emails, used_usernames = (set(), set()) if args.ignore_sheet else clean.load_master_sheet(cfg)
-    log(f"Master sheet: {len(used_emails):,} emails, {len(used_usernames):,} usernames already used")
+    log(f"Master sheet: {len(used_emails):,} emails already used (duplicates checked by "
+        f"{cfg['master_sheet'].get('dedupe_by', 'email').replace('_', ' ')})")
     clean.clean(leads, cfg, used_emails, used_usernames)
     log(f"After clean & dedupe: {sum(not l.rejected for l in leads)} left")
 
     website_finder.run(leads, cfg)
+    clean.recheck_emails(leads, used_emails)
     log(f"After website email finder: {sum(not l.rejected for l in leads)} left")
 
     scorer.run(leads, cfg, use_llm=not args.no_llm)

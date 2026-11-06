@@ -60,6 +60,8 @@ def clean(leads: list[Lead], cfg: dict, used_emails: set, used_usernames: set) -
     reject_words = [w.lower() for w in filters["reject_bio_keywords"]]
     include = keyword_pattern([w for group in cfg["include_bio_keywords"].values() for w in group])
     seen_emails, seen_users = set(), set()
+    # "email" follows the team's sheet rule; "email_and_username" also skips accounts already contacted on another email
+    check_usernames = cfg["master_sheet"].get("dedupe_by", "email") == "email_and_username"
 
     for lead in leads:
         lead.email = normalise_email(lead.email)
@@ -69,7 +71,7 @@ def clean(leads: list[Lead], cfg: dict, used_emails: set, used_usernames: set) -
                 lead.email, lead.email_source = from_bio, "bio"
 
         bio = lead.biography.lower()
-        if lead.username in used_usernames:
+        if check_usernames and lead.username in used_usernames:
             lead.reject("already in master sheet (username)")
         elif lead.email and lead.email in used_emails:
             lead.reject("already in master sheet (email)")
@@ -92,3 +94,16 @@ def clean(leads: list[Lead], cfg: dict, used_emails: set, used_usernames: set) -
         if lead.email:
             seen_emails.add(lead.email)
     return leads
+
+
+def recheck_emails(leads: list[Lead], used_emails: set) -> None:
+    """Emails found on websites were not known at clean time; drop the ones already in the master sheet."""
+    seen = set()
+    for lead in leads:
+        if lead.rejected or not lead.email:
+            continue
+        if lead.email in used_emails:
+            lead.reject("already in master sheet (email)")
+        elif lead.email in seen:
+            lead.reject("duplicate within this batch")
+        seen.add(lead.email)
