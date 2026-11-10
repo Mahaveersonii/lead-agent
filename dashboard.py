@@ -66,13 +66,19 @@ class Job:
         threading.Thread(target=self._read, args=(self.proc,), daemon=True).start()
 
     def _read(self, proc: subprocess.Popen) -> None:
-        for line in proc.stdout:
-            self.lines.append(line.rstrip("\n"))
-        self.exit_code = proc.wait()
-        self.lines.append(f"--- finished ({'OK' if self.exit_code == 0 else 'stopped with a problem'}) ---")
+        """Keep each line in memory for the page and write it to the log file straight away,
+        so the log is readable even while a run is still going or if the window is closed."""
         LOGS.mkdir(parents=True, exist_ok=True)
         stamp = self.started.replace("-", "").replace(":", "").replace(" ", "-")
-        (LOGS / f"{stamp}-{self.kind}.log").write_text("\n".join(self.lines) + "\n", encoding="utf-8")
+        with open(LOGS / f"{stamp}-{self.kind}.log", "w", encoding="utf-8") as log_file:
+            for line in proc.stdout:
+                self.lines.append(line.rstrip("\n"))
+                log_file.write(line if line.endswith("\n") else line + "\n")
+                log_file.flush()
+            self.exit_code = proc.wait()
+            end = f"--- finished ({'OK' if self.exit_code == 0 else 'stopped with a problem'}, exit code {self.exit_code}) ---"
+            self.lines.append(end)
+            log_file.write(end + "\n")
 
     def stop(self) -> None:
         if self.running:
