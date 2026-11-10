@@ -6,7 +6,7 @@ import re
 
 import requests
 
-from .common import Lead
+from .common import Lead, progress
 
 PROMPT = """You qualify Instagram leads for a PERSONAL BRANDING agency.
 Good leads are experts, practitioners and small businesses in the target niches who sell
@@ -51,7 +51,7 @@ def _ask_ollama(lead: Lead, cfg: dict) -> dict:
         followers=lead.followers, business=lead.is_business, website=lead.website or "none",
         bio=lead.biography.replace("\n", " ")[:600] or "(empty)",
     )
-    response = requests.post(scoring["ollama_url"], timeout=120, json={
+    response = requests.post(scoring["ollama_url"], timeout=300, json={
         "model": scoring["ollama_model"], "prompt": prompt, "stream": False,
         "format": "json", "think": False, "options": {"num_predict": 120},
     })
@@ -64,9 +64,9 @@ def _ask_ollama(lead: Lead, cfg: dict) -> dict:
 
 def run(leads: list[Lead], cfg: dict, use_llm: bool = True) -> None:
     scoring = cfg["scoring"]
-    for lead in leads:
-        if lead.rejected:
-            continue
+    todo = [lead for lead in leads if not lead.rejected]
+    for done, lead in enumerate(todo, 1):
+        progress("AI fit", done, len(todo))
         keyword = _keyword_niche(lead, cfg["target_niches"])
         if use_llm and scoring["use_local_llm"]:
             try:

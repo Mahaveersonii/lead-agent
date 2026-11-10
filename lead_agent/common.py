@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from datetime import datetime
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Optional
@@ -78,3 +79,9 @@ def load_env() -> None:
         value = value.strip().strip('"').strip("'")
         if value:
             os.environ.setdefault(key.strip(), value)
+
+
+def progress(step: str, done: int, total: int) -> None:
+    """Print a progress line (the dashboard shows it) on the first lead, every 10 leads and the last one."""
+    if done == 1 or done % 10 == 0 or done == total:
+        print(f"[{datetime.now():%H:%M:%S}] {step}: lead {done}/{total}", flush=True)

@@ -178,6 +178,7 @@ let since = 0, lines = [], polling = null, currentKind = "";
 function renderSteps() {
   if (currentKind === "check" || !currentKind) { $("steps").innerHTML = ""; return; }
   let reached = -1; const counts = {};
+  lines.forEach((l) => { const pr = l.match(/\] (AI fit|First lines): lead (\d+\/\d+)/); if (pr) counts[pr[1]] = pr[2]; });
   lines.forEach((l) => STEPS.forEach(([name, re], i) => {
     if (re.test(l)) { reached = Math.max(reached, i); const m = l.match(/: (\d+) left/) || l.match(/(\d+) leads loaded/); if (m) counts[name] = m[1]; }
   }));

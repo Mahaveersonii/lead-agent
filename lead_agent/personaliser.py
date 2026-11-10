@@ -7,7 +7,7 @@ import re
 
 import requests
 
-from .common import Lead
+from .common import Lead, progress
 
 WRITE_PROMPT = """Write the FIRST LINE of a cold email to an Instagram creator.
 The rest of the email (written by us) pitches personal branding services, so do NOT pitch anything.
@@ -60,7 +60,7 @@ EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
 
 
 def _ollama(prompt: str, model: str, cfg: dict, max_tokens: int) -> dict:
-    response = requests.post(cfg["personalisation"]["ollama_url"], timeout=120, json={
+    response = requests.post(cfg["personalisation"]["ollama_url"], timeout=300, json={
         "model": model, "prompt": prompt, "stream": False,
         "format": "json", "think": False, "options": {"num_predict": max_tokens, "temperature": 0.7},
     })
@@ -109,9 +109,9 @@ def personalise(lead: Lead, cfg: dict) -> None:
 def run(leads: list[Lead], cfg: dict, use_llm: bool = True) -> None:
     if not cfg["personalisation"]["enabled"]:
         return
-    for lead in leads:
-        if lead.rejected:
-            continue
+    todo = [lead for lead in leads if not lead.rejected]
+    for done, lead in enumerate(todo, 1):
+        progress("First lines", done, len(todo))
         if not use_llm:
             lead.personalization = fallback_line(lead, cfg)
             continue
