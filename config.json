@@ -67,11 +67,28 @@
   "first_name_fallback": "there",
 
   "personalisation": {
-    "enabled": true,
+    "enabled": false,
     "ollama_url": "http://localhost:11434/api/generate",
     "writer_model": "qwen3:8b",
     "checker_model": "qwen3:8b",
-    "fallback_line": "I was looking at a few {niche} accounts and yours was one that really stood out."
+    "fallback_line": "I was looking at a few {niche} accounts and yours was one that really stood out.",
+    "podcast_fallback_line": "I was looking at a few {niche} podcasts and yours was one that really stood out."
+  },
+
+  "podcasts": {
+    "keywords": [],
+    "countries": ["US", "GB", "AU", "CA"],
+    "languages": ["en"],
+    "results_per_search": 200,
+    "seconds_between_searches": 3.5,
+    "active_days": 60,
+    "min_episodes": 5,
+    "skip_email_domains": ["anchor.fm", "spotify", "podbean", "buzzsprout", "libsyn", "soundcloud", "redcircle",
+                           "acast", "megaphone", "simplecast", "transistor", "captivate", "podcastle", "spreaker",
+                           "audioboom", "riverside", "zencast", "rss.com", "castos", "blubrry", "omny", "iheart",
+                           "fireside", "podomatic", "pinecast", "example.com"],
+    "campaign_name_contains": "(New-mails)",
+    "row_label": "Agent podcast ({date})"
   },
 
   "instantly": {

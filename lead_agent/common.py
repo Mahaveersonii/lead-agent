@@ -31,6 +31,9 @@ class Lead:
     profile_url: str
     source_file: str
     email_source: str = "ig_contact"
+    source: str = "instagram"          # "instagram" or "podcast"
+    podcast: str = ""
+    latest_episode: str = ""
     status: str = "New"
     reason: str = ""
     niche: str = ""

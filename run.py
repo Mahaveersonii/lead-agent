@@ -29,7 +29,7 @@ def log(message: str) -> None:
     print(f"[{datetime.now():%H:%M:%S}] {message}", flush=True)
 
 
-def preflight(cfg: dict, args) -> dict | None:
+def preflight(cfg: dict, args, marker: str) -> dict | None:
     """Check keys, campaign day, campaign and sheet access before touching any lead. Returns the campaign."""
     if args.live and not args.any_day:
         today = datetime.now().strftime("%A")
@@ -45,7 +45,7 @@ def preflight(cfg: dict, args) -> dict | None:
         except requests.RequestException:
             sys.exit("Ollama is not running. Open the Ollama app (or run `ollama serve`), then try again.")
     try:
-        campaign = sender.pick_campaign(cfg)
+        campaign = sender.pick_campaign(cfg, marker)
         log(f"Instantly campaign: {campaign['name']}")
     except sender.NoCampaign as problem:
         if args.live:
@@ -93,13 +93,26 @@ def main() -> None:
     if not files:
         sys.exit(f"No CSV files in {paths['incoming']}")
     log("LIVE RUN" if args.live else "TEST RUN (nothing is sent)")
-    campaign = preflight(cfg, args)
 
     leads = []
     for path in files:
-        leads += intake.read_file(path)
+        try:
+            leads += intake.read_file(path)
+        except (ValueError, KeyError, csv.Error, UnicodeDecodeError) as problem:
+            sys.exit(f"Could not read {path.name}: {problem}. Remove it from Lead files and try again.")
         log(f"Read {path.name}")
-    log(f"{len(leads)} leads loaded")
+    if not leads:
+        sys.exit("The lead files are empty.")
+
+    # podcast leads can go to their own campaign; a run uses one campaign, so don't mix sources then
+    markers = {cfg["podcasts"]["campaign_name_contains"] if lead.source == "podcast"
+               else cfg["instantly"]["campaign_name_contains"] for lead in leads}
+    if len(markers) > 1:
+        sys.exit("Podcast and Instagram lead files go to different campaigns. Run them separately: "
+                 "keep only one kind of file in Lead files.")
+    campaign = preflight(cfg, args, markers.pop())
+    podcasts = sum(lead.source == "podcast" for lead in leads)
+    log(f"{len(leads)} leads loaded" + (f" ({podcasts} from podcasts)" if podcasts else ""))
 
     used_emails, used_usernames = (set(), set()) if args.ignore_sheet else clean.load_master_sheet(cfg)
     log(f"Master sheet: {len(used_emails):,} emails already used (duplicates checked by "
@@ -121,7 +134,7 @@ def main() -> None:
     log(f"After email verification: {sum(not l.rejected for l in leads)} left")
 
     personaliser.run(leads, cfg, use_llm=not args.no_llm)
-    log("First lines written")
+    log("First lines written" if cfg["personalisation"]["enabled"] else "First lines: off (fixed template), skipped")
 
     summary = sender.run(leads, cfg, campaign, dry_run=not args.live)
     log(f"Instantly: {summary}")

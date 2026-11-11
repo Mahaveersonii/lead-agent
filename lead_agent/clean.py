@@ -77,11 +77,11 @@ def clean(leads: list[Lead], cfg: dict, used_emails: set, used_usernames: set) -
             lead.reject("already in master sheet (email)")
         elif lead.username in seen_users or (lead.email and lead.email in seen_emails):
             lead.reject("duplicate within this batch")
-        elif filters["skip_private"] and lead.is_private:
+        elif lead.source != "podcast" and filters["skip_private"] and lead.is_private:
             lead.reject("private account")
-        elif lead.followers < filters["min_followers"]:
+        elif lead.source != "podcast" and lead.followers < filters["min_followers"]:
             lead.reject(f"followers below {filters['min_followers']}")
-        elif lead.followers > filters["max_followers"]:
+        elif lead.source != "podcast" and lead.followers > filters["max_followers"]:
             lead.reject(f"followers above {filters['max_followers']}")
         elif any(word in bio for word in reject_words):
             lead.reject("bio matches excluded type (agency / fan page / competitor)")

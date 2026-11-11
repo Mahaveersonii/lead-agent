@@ -8,7 +8,7 @@ import requests
 
 from .common import Lead, progress
 
-PROMPT = """You qualify Instagram leads for a PERSONAL BRANDING agency.
+PROMPT = """You qualify leads (Instagram accounts or podcast hosts) for a PERSONAL BRANDING agency.
 Good leads are experts, practitioners and small businesses in the target niches who sell
 something: coaching, consulting, therapy, classes, treatments, professional services or their own
 products. Solo experts and small clinics, studios and practices both count.
@@ -16,9 +16,11 @@ products. Solo experts and small clinics, studios and practices both count.
 Target niches: {niches}
 
 Reject: marketing or personal-branding agencies (our competitors), large corporations,
-fan/meme/news/quote pages, and accounts with nothing to sell.
+fan/meme/news/quote pages, and accounts with nothing to sell. For podcast hosts, also reject
+media companies, networks and news, sports or entertainment shows.
 
 Lead:
+- Source: {source}
 - Name: {name}
 - Username: @{username}
 - Followers: {followers}
@@ -48,7 +50,8 @@ def _ask_ollama(lead: Lead, cfg: dict) -> dict:
     scoring = cfg["scoring"]
     prompt = PROMPT.format(
         niches=", ".join(cfg["target_niches"]), name=lead.full_name, username=lead.username,
-        followers=lead.followers, business=lead.is_business, website=lead.website or "none",
+        source=f'podcast host of "{lead.podcast}"' if lead.source == "podcast" else "Instagram account",
+        followers="unknown (podcast)" if lead.source == "podcast" else lead.followers, business=lead.is_business, website=lead.website or "none",
         bio=lead.biography.replace("\n", " ")[:600] or "(empty)",
     )
     response = requests.post(scoring["ollama_url"], timeout=300, json={

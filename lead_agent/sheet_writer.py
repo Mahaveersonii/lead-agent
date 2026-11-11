@@ -28,7 +28,7 @@ def build_rows(leads: list[Lead], label: str) -> list[list]:
             lead.first_name or lead.full_name,
             lead.niche,
             lead.email,
-            lead.followers,
+            "" if lead.source == "podcast" else lead.followers,
             lead.profile_url or f"https://www.instagram.com/{lead.username}",
         ])
     return rows
@@ -36,7 +36,9 @@ def build_rows(leads: list[Lead], label: str) -> list[list]:
 
 def run(leads: list[Lead], cfg: dict, dry_run: bool = True) -> list[list]:
     sent = [lead for lead in leads if lead.status == "Sent"]
-    label = cfg["master_sheet"]["row_label"].format(date=date.today().strftime("%d/%b"))
+    podcast_only = bool(sent) and all(lead.source == "podcast" for lead in sent)
+    template = cfg["podcasts"]["row_label"] if podcast_only else cfg["master_sheet"]["row_label"]
+    label = template.format(date=date.today().strftime("%d/%b"))
     rows = build_rows(sent, label)
     if dry_run or not rows:
         return rows

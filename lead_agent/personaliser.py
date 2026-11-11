@@ -40,9 +40,36 @@ Reply ONLY with JSON: {{"line": "<the sentence>"}}"""
 OPENERS = ["Saw that", "Noticed you", "Really like that you", "Just read that you", "Love how you",
            "It is not every day I see", "Came across your work on", "Your bio mentions"]
 
+PODCAST_WRITE_PROMPT = """Write the FIRST LINE of a cold email to a podcast host.
+The rest of the email (written by us) pitches personal branding services, so do NOT pitch anything.
+
+Rules:
+- One sentence, 12 to 25 words, plain conversational English, like a real person typing.
+- Mention ONE concrete detail: the topic of their latest episode, or what their podcast helps listeners with.
+- Use ONLY facts written below. Never invent audiences, results, places or numbers.
+- Do not claim you listened to an episode. Say you saw or came across it, never that you heard or listened.
+- Never talk about yourself, your focus or personal branding, and do not judge their work.
+- No greeting, no name at the start, no emojis, no exclamation marks, no hashtags.
+- Never use these words: resonate, resonates, holistic, journey, deeply, truly, inspiring, passion.
+
+Good examples (style only, do not copy the facts):
+- Latest episode "Negotiating your first coaching contract" ->
+  "Saw your recent episode on negotiating a first coaching contract, which is a question most new coaches get wrong."
+- Podcast about career changes for nurses ->
+  "Came across your podcast on helping nurses move into new careers, a niche I had not seen covered before."
+
+Host:
+- Name: {name}
+- Podcast: {podcast}
+- Niche: {niche}
+- Latest episode title: {episode}
+- About the podcast: {bio}
+
+Reply ONLY with JSON: {{"line": "<the sentence>"}}"""
+
 CHECK_PROMPT = """You review a cold-email first line before it is sent.
 
-Creator bio: {bio}
+Creator bio (for podcast hosts: podcast description and latest episode): {bio}
 Creator niche: {niche}
 First line: "{line}"
 
@@ -83,19 +110,26 @@ def rule_problems(line: str) -> str:
 
 def fallback_line(lead: Lead, cfg: dict) -> str:
     niche = lead.niche if lead.niche and lead.niche != "other" else "your space"
-    return cfg["personalisation"]["fallback_line"].format(niche=niche)
+    settings = cfg["personalisation"]
+    template = settings.get("podcast_fallback_line", settings["fallback_line"]) if lead.source == "podcast" else settings["fallback_line"]
+    return template.format(niche=niche)
 
 
 def personalise(lead: Lead, cfg: dict) -> None:
     settings = cfg["personalisation"]
     bio = lead.biography.replace("\n", " ")[:600] or "(empty)"
     for _ in range(2):  # one retry if the checker rejects the first draft
-        prompt = WRITE_PROMPT.format(name=lead.full_name, niche=lead.niche, bio=bio, opener=random.choice(OPENERS))
+        if lead.source == "podcast":
+            prompt = PODCAST_WRITE_PROMPT.format(name=lead.full_name, podcast=lead.podcast, niche=lead.niche,
+                                                 episode=lead.latest_episode or "(unknown)", bio=bio)
+        else:
+            prompt = WRITE_PROMPT.format(name=lead.full_name, niche=lead.niche, bio=bio, opener=random.choice(OPENERS))
         line = str(_ollama(prompt,
                            settings["writer_model"], cfg, 80).get("line", "")).strip().strip('"')
         problem = rule_problems(line)
         if not problem:
-            review = _ollama(CHECK_PROMPT.format(bio=bio, niche=lead.niche, line=line),
+            facts = f"{bio} Latest episode: {lead.latest_episode}" if lead.source == "podcast" else bio
+            review = _ollama(CHECK_PROMPT.format(bio=facts, niche=lead.niche, line=line),
                              settings["checker_model"], cfg, 40)
             if review.get("ok") is True:
                 lead.personalization = line if line.endswith((".", "?")) else line + "."

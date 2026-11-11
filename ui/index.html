@@ -78,7 +78,7 @@
 <header>
   <div>
     <h1>Lead Agent</h1>
-    <div class="sub">IG export → clean → AI fit → Bouncify → first line → Instantly → master sheet</div>
+    <div class="sub">IG export or podcast search → clean → AI fit → Bouncify → first line → Instantly → master sheet</div>
   </div>
 </header>
 
@@ -100,6 +100,15 @@
       <ul class="files" id="files"></ul>
     </section>
   </div>
+
+  <section>
+    <h2>Podcast leads (optional)</h2>
+    <p class="hint">Finds podcast hosts in our niches who posted in the last 60 days and use their own email, skips anyone in the master sheet, and saves them as a file in Lead files. Free, sends nothing, takes about 10 to 20 minutes. Then run a Test run or LIVE run as usual. Run podcast files and Instagram files separately.</p>
+    <div class="row">
+      <input type="text" id="podKeywords" placeholder="Keywords, comma separated (empty = all target niches)" style="flex:1;min-width:240px">
+      <button class="primary" id="podBtn">Find podcast leads</button>
+    </div>
+  </section>
 
   <section>
     <h2>3. Run</h2>
@@ -169,14 +178,14 @@ const api = async (path, opts = {}) => {
 
 const STEPS = [
   ["Load", /leads loaded/], ["Dedupe", /already used/], ["Clean", /After clean/], ["Website", /After website/],
-  ["AI fit", /After fit scoring/], ["Bouncify", /After email verification/], ["First lines", /First lines written/],
+  ["AI fit", /After fit scoring/], ["Bouncify", /After email verification/], ["First lines", /First lines (written|: off)/],
   ["Instantly", /^\[.*\] Instantly: \{/], ["Sheet", /rows (added|would be added)/], ["Report", /Report:/],
 ];
 
 let since = 0, lines = [], polling = null, currentKind = "";
 
 function renderSteps() {
-  if (currentKind === "check" || !currentKind) { $("steps").innerHTML = ""; return; }
+  if (currentKind === "check" || currentKind === "podcasts" || !currentKind) { $("steps").innerHTML = ""; return; }
   let reached = -1; const counts = {};
   lines.forEach((l) => { const pr = l.match(/\] (AI fit|First lines): lead (\d+\/\d+)/); if (pr) counts[pr[1]] = pr[2]; });
   lines.forEach((l) => STEPS.forEach(([name, re], i) => {
@@ -195,7 +204,7 @@ function renderChecks() {
 }
 
 function setBusy(busy) {
-  document.querySelectorAll("[data-kind], #liveBtn").forEach((b) => (b.disabled = busy));
+  document.querySelectorAll("[data-kind], #liveBtn, #podBtn").forEach((b) => (b.disabled = busy));
   $("stopBtn").disabled = !busy;
 }
 
@@ -222,7 +231,8 @@ async function poll() {
   } else {
     clearInterval(polling); polling = null;
     const lastError = [...lines].reverse().find((l) => l && !l.startsWith("---") && !l.startsWith("["));
-    if (s.exit_code === 0) banner(s.kind === "live" ? "LIVE run finished. Check the campaign in Instantly (preview 2–3 leads), then start it." : `${s.label} finished.`, "ok");
+    if (s.exit_code === 0 && s.kind === "podcasts") banner("Podcast leads saved in Lead files. Next: Test run or LIVE run.", "ok");
+    else if (s.exit_code === 0) banner(s.kind === "live" ? "LIVE run finished. Check the campaign in Instantly (preview 2–3 leads), then start it." : `${s.label} finished.`, "ok");
     else banner(`${s.label} stopped: ${lastError || "see the log below"}`, "bad");
     loadFiles(); loadHistory();
   }
@@ -238,6 +248,7 @@ async function start(kind, body) {
 }
 
 document.querySelectorAll("[data-kind]").forEach((b) => b.addEventListener("click", () => start(b.dataset.kind)));
+$("podBtn").onclick = () => start("podcasts", { keywords: $("podKeywords").value });
 $("stopBtn").onclick = () => api("/api/stop", { method: "POST" });
 
 $("liveBtn").onclick = () => { $("yes").value = ""; $("liveGo").disabled = true; $("liveDialog").showModal(); $("yes").focus(); };
@@ -295,7 +306,7 @@ function renderReport() {
   const f = $("reportFilter").value;
   const rows = report.rows.filter((r) => f === "pass" ? r.status !== "Rejected" : !f || r.status === f);
   $("reportBody").innerHTML = rows.map((r) => "<tr>" + report.columns.map((c) =>
-    c === "profile_url" && r[c] ? `<td><a href="${esc(r[c])}" target="_blank" rel="noopener">open</a></td>` : `<td>${esc(r[c])}</td>`).join("") + "</tr>").join("")
+    (c === "profile_url" || c === "website") && r[c] && /^https?:\/\//i.test(r[c]) ? `<td><a href="${esc(r[c])}" target="_blank" rel="noopener">open</a></td>` : `<td>${esc(r[c])}</td>`).join("") + "</tr>").join("")
     || `<tr><td class="hint">No leads in this view.</td></tr>`;
 }
 $("reportFilter").onchange = renderReport;

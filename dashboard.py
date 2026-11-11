@@ -34,8 +34,9 @@ JOBS = {
     "test": ("Test run (free)", ["run.py"]),
     "test_verify": ("Test run + Bouncify", ["run.py", "--verify"]),
     "live": ("LIVE run", ["run.py", "--live"]),
+    "podcasts": ("Podcast search", ["find_podcasts.py"]),
 }
-TABLE_COLUMNS = ["status", "reason", "email", "first_name", "full_name", "username", "niche", "fit_score",
+TABLE_COLUMNS = ["status", "reason", "source", "email", "first_name", "full_name", "username", "podcast", "niche", "fit_score",
                  "verification", "followers", "personalization", "profile_url"]
 
 
@@ -54,14 +55,14 @@ class Job:
     def running(self) -> bool:
         return self.proc is not None and self.proc.poll() is None
 
-    def start(self, kind: str) -> None:
+    def start(self, kind: str, extra: list[str] | None = None) -> None:
         with self.lock:
             if self.running:
                 raise RuntimeError("Another run is still going. Wait for it to finish or press Stop.")
             self.kind, self.lines, self.exit_code = kind, [], None
             self.started = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             env = dict(os.environ, PYTHONUNBUFFERED="1")
-            self.proc = subprocess.Popen([sys.executable, "-W", "ignore", *JOBS[kind][1]], cwd=ROOT, env=env,
+            self.proc = subprocess.Popen([sys.executable, "-W", "ignore", *JOBS[kind][1], *(extra or [])], cwd=ROOT, env=env,
                                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
         threading.Thread(target=self._read, args=(self.proc,), daemon=True).start()
 
@@ -203,14 +204,21 @@ class Handler(BaseHTTPRequestHandler):
                 kind = query.get("kind", [""])[0]
                 if kind not in JOBS:
                     return self._json({"error": "unknown run type"}, 400)
-                if kind == "live" and json.loads(body or b"{}").get("confirm") != "YES":
+                options = json.loads(body or b"{}")
+                if kind == "live" and options.get("confirm") != "YES":
                     return self._json({"error": "Type YES to start a live run"}, 400)
-                JOB.start(kind)
+                extra = []
+                if kind == "podcasts" and str(options.get("keywords", "")).strip():
+                    keywords = str(options["keywords"]).replace("\n", ",")[:2000]
+                    extra = [f"--keywords={keywords}"]  # one argument, never through a shell
+                JOB.start(kind, extra)
                 return self._json({"ok": True})
             if url.path == "/api/stop":
                 JOB.stop()
                 return self._json({"ok": True})
             return self._json({"error": "not found"}, 404)
+        except ValueError:
+            return self._json({"error": "bad request"}, 400)
         except RuntimeError as problem:
             return self._json({"error": str(problem)}, 409)
 

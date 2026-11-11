@@ -38,6 +38,14 @@ def first_name_from(full_name: str) -> str:
     return word.capitalize() if word.isupper() or word.islower() else word
 
 
+def _podcast_fields(row: dict) -> dict:
+    """Extra columns written by the Podcast finder; Instagram exports don't have them."""
+    if (row.get("Source") or "").strip().lower() != "podcast":
+        return {}
+    return {"source": "podcast", "email_source": "podcast_feed", "podcast": (row.get("Podcast Name") or "").strip(),
+            "latest_episode": (row.get("Latest Episode Title") or "").strip()}
+
+
 def find_new_files(incoming: Path) -> list[Path]:
     return sorted(p for p in incoming.glob("*.csv") if p.is_file())
 
@@ -67,5 +75,6 @@ def read_file(path: Path) -> list[Lead]:
                 is_verified=_bool(row["Is Verified"]),
                 profile_url=(row["Profile Url"] or "").strip(),
                 source_file=path.name,
+                **_podcast_fields(row),
             ))
         return leads

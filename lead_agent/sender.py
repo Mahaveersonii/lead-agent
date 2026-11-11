@@ -30,12 +30,13 @@ def list_campaigns(cfg: dict) -> list[dict]:
             return items
 
 
-def pick_campaign(cfg: dict) -> dict:
+def pick_campaign(cfg: dict, marker: str | None = None) -> dict:
     """Newest campaign matching the name marker; it must be a Draft created recently."""
     settings = cfg["instantly"]
-    matches = [c for c in list_campaigns(cfg) if settings["campaign_name_contains"].lower() in c["name"].lower()]
+    marker = marker or settings["campaign_name_contains"]
+    matches = [c for c in list_campaigns(cfg) if marker.lower() in c["name"].lower()]
     if not matches:
-        raise NoCampaign(f'No campaign name contains "{settings["campaign_name_contains"]}".')
+        raise NoCampaign(f'No campaign name contains "{marker}".')
     newest = max(matches, key=lambda c: c.get("timestamp_created", ""))
     created = datetime.fromisoformat(newest["timestamp_created"].replace("Z", "+00:00"))
     age_hours = (datetime.now(timezone.utc) - created).total_seconds() / 3600
@@ -55,7 +56,9 @@ def _payload(lead: Lead, cfg: dict) -> dict:
         "personalization": lead.personalization,
         "website": lead.website,
         "company_name": lead.full_name,
-        "custom_variables": {"niche": lead.niche, "instagram": lead.profile_url, "tier": lead.tier},
+        "custom_variables": {"niche": lead.niche, "tier": lead.tier, "source": lead.source,
+                             "instagram": lead.profile_url if lead.source != "podcast" else "",
+                             "podcast": lead.podcast, "podcast_url": lead.profile_url if lead.source == "podcast" else ""},
     }
 
 

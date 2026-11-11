@@ -53,6 +53,18 @@ Bouncify credits run out, or it is not Mon-Wed. A report of every lead is saved 
 
 **1 - Check setup** re-tests all connections at any time.
 
+## Podcast leads (extra lead source)
+
+The dashboard's **Find podcast leads** button (or `python find_podcasts.py`) searches Apple Podcasts for
+our niches, reads each show's public RSS feed and keeps hosts who posted in the last 60 days, use their own
+email (not a hosting company address) and are not in the master sheet. It saves `Podcasts-....csv` into
+`Leads/Incoming`; then run a Test run or LIVE run as usual. Free, no key, sends nothing by itself.
+
+- Keywords: type them in the box, or leave it empty to use `target_niches`.
+- Settings in `config.json` → `podcasts`: countries, active days, minimum episodes, skipped email domains,
+  the campaign marker for podcast leads and the master-sheet label.
+- If `podcasts.campaign_name_contains` differs from the Instagram marker, run podcast and Instagram files separately.
+
 ## Updates
 
 In Terminal / PowerShell inside the folder: `git pull`. Your keys, leads and reports are not affected.
