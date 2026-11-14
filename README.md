@@ -37,7 +37,7 @@ setup check, drop the CSV, Test run, LIVE run (type YES), live progress, and the
 Keep the Terminal window it opens running while you use the page; closing it stops the dashboard.
 The page works only on this computer.
 
-## Every campaign day (Mon, Tue, Wed, before 6 PM)
+## Every campaign day (any day of the week)
 
 1. Instantly: duplicate a new `AS-XX (New-mails)` campaign and leave it as a **Draft**.
 2. Double-click **0 - Open Dashboard** and drop the IG Email Extractor export(s) into **Lead files**
@@ -47,7 +47,7 @@ The page works only on this computer.
 
 The live run does every check itself: duplicates, filters, AI fit, Bouncify and first lines.
 It stops without sending if there is no fresh Draft `(New-mails)` campaign, Ollama is not running,
-Bouncify credits run out, or it is not Mon-Wed. A report of every lead is saved in `output/`.
+Bouncify credits run out, or today is not in `instantly.campaign_days` in config.json (all 7 days by default; remove days there to limit it). A report of every lead is saved in `output/`.
 
 **2 - Test run** is optional: use it once after setup, or after rules change. It sends nothing.
 

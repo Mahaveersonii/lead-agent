@@ -161,7 +161,7 @@
     "campaign_name_contains": "(New-mails)",
     "campaign_must_be_draft": true,
     "campaign_max_age_hours": 24,
-    "campaign_days": ["Monday", "Tuesday", "Wednesday"],
+    "campaign_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
     "skip_if_in_workspace": true,
     "batch_size": 500
   }
