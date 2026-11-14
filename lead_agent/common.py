@@ -40,6 +40,12 @@ class Lead:
     fit_score: Optional[int] = None
     fit_reason: str = ""
     tier: str = ""
+    category: str = ""                 # Instagram category label, when the export has one
+    decision: str = ""                 # KEEP / MAYBE / REMOVE from the keyword rules
+    rule_score: Optional[int] = None
+    industry: str = ""
+    signals: str = ""
+    rule_reason: str = ""
     verification: str = ""
     personalization: str = ""
     notes: list = field(default_factory=list)
@@ -56,6 +62,13 @@ class Lead:
         row = asdict(self)
         row["notes"] = "; ".join(self.notes)
         return row
+
+
+def keyword_pattern(words: list[str]) -> re.Pattern:
+    """Whole-word match, so 'pr' does not hit 'product' and 'sale' does not hit 'wholesale'."""
+    # a hyphen or space in a keyword matches either, so "makeup-artist" also hits "makeup artist"
+    parts = sorted({re.escape(w).replace(r"\-", r"[-\s]?").replace(r"\ ", r"[-\s]") for w in words}, key=len, reverse=True)
+    return re.compile(r"(?<![a-z0-9])(" + "|".join(parts) + r")(?![a-z0-9])", re.I)
 
 
 def load_config() -> dict:

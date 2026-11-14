@@ -46,6 +46,14 @@ def _podcast_fields(row: dict) -> dict:
             "latest_episode": (row.get("Latest Episode Title") or "").strip()}
 
 
+CATEGORY_COLUMNS = ("Category", "Category Name", "Business Category", "Business Category Name")
+
+
+def _category(row: dict) -> str:
+    """Instagram category label, if this export has the column (IG Email Extractor's default export doesn't)."""
+    return next(((row.get(c) or "").strip() for c in CATEGORY_COLUMNS if (row.get(c) or "").strip()), "")
+
+
 def find_new_files(incoming: Path) -> list[Path]:
     return sorted(p for p in incoming.glob("*.csv") if p.is_file())
 
@@ -75,6 +83,7 @@ def read_file(path: Path) -> list[Lead]:
                 is_verified=_bool(row["Is Verified"]),
                 profile_url=(row["Profile Url"] or "").strip(),
                 source_file=path.name,
+                category=_category(row),
                 **_podcast_fields(row),
             ))
         return leads

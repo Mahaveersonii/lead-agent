@@ -78,7 +78,7 @@
 <header>
   <div>
     <h1>Lead Agent</h1>
-    <div class="sub">IG export or podcast search → clean → AI fit → Bouncify → first line → Instantly → master sheet</div>
+    <div class="sub">IG export or podcast search → clean → keyword rules (KEEP / MAYBE / REMOVE) → AI check of MAYBE → Bouncify → first line → Instantly → master sheet</div>
   </div>
 </header>
 
@@ -178,7 +178,7 @@ const api = async (path, opts = {}) => {
 
 const STEPS = [
   ["Load", /leads loaded/], ["Dedupe", /already used/], ["Clean", /After clean/], ["Website", /After website/],
-  ["AI fit", /After fit scoring/], ["Bouncify", /After email verification/], ["First lines", /First lines (written|: off)/],
+  ["AI check", /After fit scoring/], ["Bouncify", /After email verification/], ["First lines", /First lines (written|: off)/],
   ["Instantly", /^\[.*\] Instantly: \{/], ["Sheet", /rows (added|would be added)/], ["Report", /Report:/],
 ];
 
@@ -187,7 +187,7 @@ let since = 0, lines = [], polling = null, currentKind = "";
 function renderSteps() {
   if (currentKind === "check" || currentKind === "podcasts" || !currentKind) { $("steps").innerHTML = ""; return; }
   let reached = -1; const counts = {};
-  lines.forEach((l) => { const pr = l.match(/\] (AI fit|First lines): lead (\d+\/\d+)/); if (pr) counts[pr[1]] = pr[2]; });
+  lines.forEach((l) => { const pr = l.match(/\] (AI fit|AI check of MAYBE leads|First lines): lead (\d+\/\d+)/); if (pr) counts[pr[1].startsWith("AI") ? "AI check" : pr[1]] = pr[2]; });
   lines.forEach((l) => STEPS.forEach(([name, re], i) => {
     if (re.test(l)) { reached = Math.max(reached, i); const m = l.match(/: (\d+) left/) || l.match(/(\d+) leads loaded/); if (m) counts[name] = m[1]; }
   }));

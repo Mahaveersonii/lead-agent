@@ -36,7 +36,8 @@ JOBS = {
     "live": ("LIVE run", ["run.py", "--live"]),
     "podcasts": ("Podcast search", ["find_podcasts.py"]),
 }
-TABLE_COLUMNS = ["status", "reason", "source", "email", "first_name", "full_name", "username", "podcast", "niche", "fit_score",
+TABLE_COLUMNS = ["status", "reason", "decision", "rule_score", "industry", "signals", "source", "email", "first_name",
+                 "full_name", "username", "podcast", "niche", "fit_score",
                  "verification", "followers", "personalization", "profile_url"]
 
 

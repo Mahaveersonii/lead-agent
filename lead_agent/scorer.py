@@ -1,12 +1,16 @@
-"""Agent 4 - Fit Scorer: local Qwen3 8B (Ollama) rates personal-branding fit 0-10. Free, data stays local."""
+"""Agent 4 - Fit Scorer. KEEP leads (from the keyword rules) pass straight through with no AI call.
+MAYBE leads get a second look from the local Qwen3 8B (Ollama); the ones it doesn't approve go to the
+review file instead of being deleted."""
 from __future__ import annotations
 
 import json
+from datetime import datetime
 import re
 
 import requests
 
-from .common import Lead, progress
+from .classifier import Classifier
+from .common import Lead, keyword_pattern, progress
 
 PROMPT = """You qualify leads (Instagram accounts or podcast hosts) for a PERSONAL BRANDING agency.
 Good leads are experts, practitioners and small businesses in the target niches who sell
@@ -38,12 +42,9 @@ Scoring: 9-10 clear target niche + sells a service (booking link/program); 6-8 l
 
 
 def _keyword_niche(lead: Lead, niches: list[str]) -> str:
-    text = f"{lead.biography} {lead.full_name}".lower()
-    for niche in niches:
-        head = niche.split()[0].rstrip("'s")
-        if niche in text or (len(head) > 4 and head in text):
-            return niche
-    return ""
+    """The target niche named in the bio or display name (whole phrase), or "" when none is."""
+    match = keyword_pattern(niches).search(f"{lead.full_name} {lead.biography}")
+    return match.group(0).lower() if match else ""
 
 
 def _ask_ollama(lead: Lead, cfg: dict) -> dict:
@@ -65,33 +66,52 @@ def _ask_ollama(lead: Lead, cfg: dict) -> dict:
             "is_person": data.get("is_person") is not False, "first_name": str(data.get("first_name", "")).strip()}
 
 
+def _accept(lead: Lead, cfg: dict, score: int, niche: str, reason: str) -> None:
+    scoring = cfg["scoring"]
+    lead.fit_score, lead.niche, lead.fit_reason = score, niche, reason
+    lead.status = "Scored"
+    lead.tier = "A" if score >= scoring["tier_a_score"] else "B"
+
+
 def run(leads: list[Lead], cfg: dict, use_llm: bool = True) -> None:
     scoring = cfg["scoring"]
+    classifier = Classifier(cfg)
     todo = [lead for lead in leads if not lead.rejected]
-    for done, lead in enumerate(todo, 1):
-        progress("AI fit", done, len(todo))
-        keyword = _keyword_niche(lead, cfg["target_niches"])
-        if use_llm and scoring["use_local_llm"]:
-            try:
-                result = _ask_ollama(lead, cfg)
-            except requests.ConnectionError:
-                raise SystemExit("Ollama stopped responding. Restart the Ollama app and run again.")
-            except (requests.RequestException, ValueError, KeyError) as error:
-                lead.notes.append(f"LLM scoring failed, used keywords: {error}")
-                result = {"score": 7 if keyword else 4, "niche": keyword or "other", "reason": "keyword match only"}
-        else:
-            result = {"score": 7 if keyword else 4, "niche": keyword or "other", "reason": "keyword match only"}
+    keep = [lead for lead in todo if lead.decision == "KEEP"]
+    maybe = [lead for lead in todo if lead.decision != "KEEP"]
+    ai_on = use_llm and scoring["use_local_llm"] and cfg["classification"]["ai_reviews_maybe"]
+    print(f"[{datetime.now():%H:%M:%S}] Keyword rules: {len(keep)} KEEP (no AI needed), {len(maybe)} MAYBE"
+          + (" (the AI checks these)" if ai_on and maybe else " (go to the review file)" if maybe else ""), flush=True)
 
-        lead.fit_score, lead.niche, lead.fit_reason = result["score"], result["niche"], result["reason"]
-        if "first_name" in result:  # the model reads names better; accept only a whole word from the name or bio
-            name = result["first_name"]
-            lead.first_name = name if name and len(name.split()) == 1 and name.lower() in re.findall(r"\w+", f"{lead.full_name} {lead.biography}".lower()) else ""
-        if lead.fit_score < scoring["min_score"]:
-            lead.reject(f"low fit score {lead.fit_score}: {lead.fit_reason}")
-        elif scoring["require_person"] and not result.get("is_person", True):
-            lead.reject(f"business page, not a person: {lead.fit_reason}")
-        elif scoring["reject_other_niche"] and lead.niche.lower() in ("", "other"):
-            lead.reject("niche not in target list")
+    for lead in keep:
+        score = min(10, max(scoring["min_score"], lead.rule_score or 0))
+        niche = _keyword_niche(lead, cfg["target_niches"]) or lead.industry
+        classifier.tidy_first_name(lead)
+        _accept(lead, cfg, score, niche, lead.rule_reason)
+
+    for done, lead in enumerate(maybe, 1):
+        if not ai_on:
+            lead.reject("MAYBE: needs a human look (see the review file)")
+            continue
+        progress("AI check of MAYBE leads", done, len(maybe))
+        try:
+            result = _ask_ollama(lead, cfg)
+        except requests.ConnectionError:
+            raise SystemExit("Ollama stopped responding. Restart the Ollama app and run again.")
+        except (requests.RequestException, ValueError, KeyError) as error:
+            lead.notes.append(f"AI check failed: {error}")
+            lead.reject("MAYBE: AI check failed (see the review file)")
+            continue
+
+        name = result["first_name"]  # the model reads names better; accept only a whole word from the name or bio
+        lead.first_name = name if name and len(name.split()) == 1 and name.lower() in re.findall(r"\w+", f"{lead.full_name} {lead.biography}".lower()) else ""
+        lead.fit_score, lead.fit_reason = result["score"], result["reason"]
+        if result["score"] < scoring["min_score"]:
+            lead.reject(f"MAYBE: AI score {result['score']}: {result['reason']}")
+        elif scoring["require_person"] and not result["is_person"]:
+            lead.reject(f"MAYBE: business page, not a person: {result['reason']}")
+        elif scoring["reject_other_niche"] and result["niche"].lower() in ("", "other"):
+            lead.reject("MAYBE: AI found no target niche")
         else:
-            lead.status = "Scored"
-            lead.tier = "A" if lead.fit_score >= scoring["tier_a_score"] else "B"
+            lead.decision = "KEEP (AI)"
+            _accept(lead, cfg, result["score"], result["niche"], result["reason"])

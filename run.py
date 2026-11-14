@@ -5,7 +5,7 @@ Usage:
     python run.py --verify        test run that also checks emails on Bouncify (uses credits)
     python run.py --live          real run: Bouncify, Instantly and the master sheet
 Options:
-    --no-llm      skip Ollama (keyword scoring + fallback first line), for quick tests
+    --no-llm      skip Ollama: KEEP leads still go through, MAYBE leads go to the review file
     --any-day     allow a live run outside the campaign days
     --ignore-sheet  test runs only: skip the master-sheet duplicate check (to test on old files)
 """
@@ -59,10 +59,33 @@ def preflight(cfg: dict, args, marker: str) -> dict | None:
     return campaign
 
 
+REVIEW_COLUMNS = ["Decision", "Score", "Industry Tag", "Matched signals", "One-line reason", "AI note", "Username",
+                  "Full name", "Email", "Followers", "Profile URL", "Bio"]
+
+
+def write_review(leads, folder: Path, stamp: str) -> Path | None:
+    """MAYBE leads that were not sent: saved for a person to check, never deleted."""
+    maybe = [lead for lead in leads if lead.decision == "MAYBE" and lead.rejected]
+    if not maybe:
+        return None
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"review-{stamp}.csv"
+    with open(path, "w", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f)
+        writer.writerow(REVIEW_COLUMNS)
+        for lead in sorted(maybe, key=lambda l: -(l.rule_score or 0)):
+            writer.writerow(["MAYBE", lead.rule_score, lead.industry, lead.signals, lead.rule_reason,
+                             lead.reason.removeprefix("MAYBE: "), lead.username, lead.full_name, lead.email,
+                             "" if lead.source == "podcast" else lead.followers,
+                             lead.profile_url or f"https://www.instagram.com/{lead.username}", lead.biography])
+    return path
+
+
 def write_report(leads, out_dir: Path, stamp: str) -> Path:
     path = out_dir / f"run-{stamp}.csv"
     rows = [lead.to_row() for lead in leads]
-    first = ["status", "reason", "email", "first_name", "personalization", "niche", "fit_score", "tier",
+    first = ["status", "reason", "decision", "rule_score", "industry", "signals", "rule_reason",
+             "email", "first_name", "personalization", "niche", "fit_score", "tier",
              "verification", "followers", "username", "full_name", "website", "email_source", "fit_reason", "notes"]
     fields = first + [k for k in rows[0] if k not in first]
     with open(path, "w", newline="", encoding="utf-8-sig") as f:
@@ -118,7 +141,10 @@ def main() -> None:
     log(f"Master sheet: {len(used_emails):,} emails already used (duplicates checked by "
         f"{cfg['master_sheet'].get('dedupe_by', 'email').replace('_', ' ')})")
     clean.clean(leads, cfg, used_emails, used_usernames)
-    log(f"After clean & dedupe: {sum(not l.rejected for l in leads)} left")
+    decided = [lead for lead in leads if lead.decision]
+    log(f"After clean & dedupe: {sum(not l.rejected for l in leads)} left (keyword rules: "
+        f"{sum(l.decision == 'KEEP' for l in decided)} KEEP, {sum(l.decision == 'MAYBE' for l in decided)} MAYBE, "
+        f"{sum(l.decision == 'REMOVE' for l in decided)} REMOVE)")
 
     website_finder.run(leads, cfg)
     clean.recheck_emails(leads, used_emails)
@@ -146,6 +172,9 @@ def main() -> None:
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     report = write_report(leads, paths["output"], stamp)
     log(f"Report: {report}")
+    review = write_review(leads, ROOT / cfg["classification"]["review_folder"], stamp)
+    if review:
+        log(f"Review file (MAYBE leads for a person to check): {review}")
 
     if args.live:
         for path in files:

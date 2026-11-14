@@ -4,7 +4,6 @@
     "processed": "Leads/Processed",
     "output": "output"
   },
-
   "master_sheet": {
     "csv_export_url": "https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}",
     "email_column": 3,
@@ -16,30 +15,104 @@
     "row_label": "Agent ({date})",
     "dedupe_by": "email"
   },
-
   "filters": {
     "min_followers": 2000,
     "max_followers": 300000,
     "skip_private": true,
-    "reject_bio_keywords": [
-      "marketing agency", "branding agency", "smma", "personal branding", "personal brand strategist",
-      "ghostwriter", "social media manager", "fan page", "fanpage", "giveaway", "meme", "memes",
-      "repost", "backup account", "parody"
-    ]
+    "reject_bio_keywords": ["marketing agency", "branding agency", "smma", "personal branding", "personal brand strategist", "ghostwriter", "social media manager", "social media management", "social media marketing", "social media strategist", "content strategist", "content strategy", "reels strategy", "instagram strategist", "instagram growth", "digital marketing", "marketing strategist", "ugc creator", "grow your ig", "ig educator", "instagram coach", "social media coach"]
   },
-
-  "include_bio_keywords": {"call_to_action": ["buy now", "shop now", "order now", "book now", "book a call", "book your", "link in bio", "get started", "free trial", "free consultation", "discount", "limited seats", "enquire", "enquiries", "inquiries", "whatsapp", "dm to order", "dm for collab", "dm for details", "dm to start", "sale", "payment", "pay now", "pre-order", "custom orders"], "coaching_education": ["coach", "life coach", "business coach", "health coach", "mentoring", "mentorship", "trainer", "tutor", "academy", "institute", "bootcamp", "certification", "certified", "cohort", "online classes", "1:1", "one on one", "teach", "teaching", "lessons", "curriculum", "courses", "classes", "workshops", "webinars", "programs", "sessions"], "business": ["agency", "studio", "company", "ceo", "owner", "entrepreneur", "managing director", "consultant", "advisor", "specialist", "strategist", "solutions", "ventures", "enterprise", "pvt ltd", "llc", "we help", "i help", "helping you", "we offer", "we provide", "our services", "our products", "services"], "funnel": ["free guide", "free ebook", "free download", "newsletter", "community", "join my", "join our", "join us", "waitlist", "apply now", "apply here", "grow your", "scale your", "6 figure", "7 figure", "link below", "click below", "tap below"], "professional": ["clinic", "doctor", "dentist", "physician", "therapist", "counselor", "counsellor", "lawyer", "advocate", "chartered accountant", "architect", "interior designer", "realtor", "real estate", "gym", "nutritionist", "dietitian", "astrologer", "tarot", "coach", "makeup-artist", "dermatologist"], "spiritual": ["spiritual", "spirituality", "healer", "healing", "energy healer", "energy work", "reiki", "reiki master", "chakra", "chakras", "aura", "meditation", "mindfulness", "manifest", "manifestation", "law of attraction", "astrology", "astrologer", "tarot", "tarot reader", "oracle", "numerology", "psychic", "medium", "intuitive", "clairvoyant", "angel", "angels", "divine", "universe", "cosmic", "soul", "soulful", "shaman", "shamanic", "breathwork", "sound healing", "sound bath", "crystal", "crystals", "gemstone", "vastu", "pooja", "puja", "mantra", "guru", "swami", "yogi", "sadhguru", "bhakti", "karma", "dharma", "ayurveda", "kundalini", "awakening", "ascension", "lightworker", "witch", "pagan", "ritual", "retreat", "ashram", "sacred", "inner peace", "inner child", "shadow work", "subconscious", "hypnotherapy", "past life", "akashic"], "health": ["health", "wellness", "wellbeing", "well-being", "fitness", "nutrition", "nutritionist", "dietitian", "diet", "weight loss", "fat loss", "weight management", "gym", "personal trainer", "workout", "bodybuilding", "crossfit", "pilates", "yoga", "yoga teacher", "zumba", "physio", "physiotherapy", "physiotherapist", "chiropractor", "naturopath", "naturopathy", "homeopathy", "homeopath", "ayurvedic", "holistic", "functional medicine", "integrative medicine", "gut health", "hormone", "hormones", "pcos", "thyroid", "diabetes", "skin care", "skincare", "dermatologist", "hair care", "detox", "immunity", "supplements", "vitamins", "organic", "vegan", "keto", "intermittent fasting", "mental health", "psychologist", "psychiatrist", "psychotherapy", "counselling", "counseling", "therapy", "anxiety", "depression", "trauma", "stress", "burnout", "sleep", "pain relief", "rehab", "recovery", "clinic", "hospital", "doctor", "dr", "md", "mbbs", "bams", "bhms", "nurse", "medical", "pharmacy", "dentist", "dental", "ortho", "cardiologist", "pediatrician", "gynecologist", "lactation", "doula", "prenatal", "postnatal"], "added_by_agent": ["program", "course", "class", "session", "workshop", "webinar", "lesson", "consultation", "consultations", "book a session", "book a consultation", "acupuncture", "acupuncturist", "fertility", "menopause", "perimenopause", "postpartum", "pregnancy", "parenting", "mom coach", "mum coach", "career", "mindset", "confidence", "relationship coach", "dating coach", "speaker", "author", "podcast", "finance", "money coach", "sales", "launch", "english", "language", "image consultant", "stylist", "makeup", "interior design", "interiors", "psychotherapist", "speech therapist", "occupational therapist", "lactation consultant", "sleep consultant", "numerologist", "tarot reading"]},
-  "include_keywords_required": true,
-
-  "target_niches": [
-    "manifestation coach", "tarot reader", "parenting coach", "postpartum coach", "profit coach",
-    "numerologist", "nutritionist", "fitness coach", "dietitian", "yoga teacher", "doctor",
-    "vastu consultant", "interior designer", "architect", "finance coach", "business coach",
-    "life coach", "personal development coach", "career coach", "sales coach",
-    "product launch coach", "english speaking teacher", "language teacher", "image consultant",
-    "psychologist", "psychiatrist", "makeup artist", "dermatologist", "pcos coach", "menopause coach", "women's coach", "energy coach"
-  ],
-
+  "classification": {
+    "about": "Rule scoring for every lead (no AI). KEEP = score >= keep_score with a niche signal; MAYBE = 1+ (AI reviews it, else review file); REMOVE = 0. Each word belongs to one list only.",
+    "keep_score": 3,
+    "keep_needs_niche_signal": true,
+    "niche_groups": ["coaching_education", "professional_clinic", "health", "spiritual", "category"],
+    "ai_reviews_maybe": true,
+    "level_caps": {
+      "strong": 6,
+      "medium": 4,
+      "weak": 2
+    },
+    "username_substring_min_length": 5,
+    "signals": {
+      "offer_cta": {
+        "level": "strong",
+        "weight": 3,
+        "words": ["buy now", "shop now", "order now", "book now", "book a call", "book a session", "book a consultation", "book your", "get started", "free trial", "free consultation", "consultation", "consultations", "discount", "limited seats", "enquire", "enquiries", "inquiries", "whatsapp", "dm to order", "dm for details", "dm to start", "sale", "payment", "pay now", "pre-order", "custom orders"]
+      },
+      "coaching_education": {
+        "level": "strong",
+        "weight": 3,
+        "words": ["coach", "coaching", "life coach", "business coach", "health coach", "career coach", "mindset coach", "money coach", "relationship coach", "dating coach", "mom coach", "mum coach", "mentor", "mentoring", "mentorship", "trainer", "tutor", "teacher", "academy", "institute", "bootcamp", "certification", "certified", "cohort", "online classes", "1:1", "one on one", "teach", "teaching", "lesson", "lessons", "curriculum", "course", "courses", "class", "classes", "workshop", "workshops", "webinar", "webinars", "program", "programs", "programme", "session", "sessions", "speaker"]
+      },
+      "business": {
+        "level": "strong",
+        "weight": 3,
+        "words": ["agency", "studio", "company", "ceo", "founder", "owner", "entrepreneur", "managing director", "consultant", "advisor", "adviser", "specialist", "strategist", "solutions", "ventures", "enterprise", "pvt ltd", "llc", "we help", "i help", "helping you", "we offer", "we provide", "our services", "our products", "services"]
+      },
+      "professional_clinic": {
+        "level": "strong",
+        "weight": 3,
+        "words": ["clinic", "doctor", "dentist", "physician", "therapist", "psychotherapist", "counselor", "counsellor", "lawyer", "advocate", "chartered accountant", "architect", "interior designer", "interior design", "realtor", "real estate", "gym", "nutritionist", "dietitian", "astrologer", "tarot reader", "numerologist", "makeup artist", "mua", "dermatologist", "psychologist", "psychiatrist", "physiotherapist", "chiropractor", "naturopath", "homeopath", "acupuncturist", "hypnotherapist", "speech therapist", "occupational therapist", "lactation consultant", "sleep consultant", "image consultant", "stylist", "hair stylist", "salon", "aesthetician", "esthetician", "nail artist", "doula", "ibclc", "personal trainer", "yoga teacher", "pediatrician", "gynecologist", "cardiologist", "nurse"]
+      },
+      "health": {
+        "level": "medium",
+        "weight": 2,
+        "words": ["health", "wellness", "wellbeing", "well-being", "fitness", "nutrition", "weight loss", "fat loss", "weight management", "workout", "bodybuilding", "crossfit", "pilates", "yoga", "prenatal yoga", "zumba", "physio", "physiotherapy", "chiropractic", "naturopathy", "homeopathy", "ayurvedic", "holistic", "functional medicine", "integrative medicine", "gut health", "hormone", "hormones", "pcos", "thyroid", "diabetes", "skin care", "skincare", "hair care", "detox", "immunity", "supplements", "vitamins", "vegan", "keto", "intermittent fasting", "mental health", "psychotherapy", "counselling", "counseling", "therapy", "anxiety", "depression", "trauma", "burnout", "pain relief", "rehab", "recovery", "hospital", "mbbs", "bams", "bhms", "bds", "medical", "pharmacy", "dental", "ortho", "lactation", "prenatal", "postnatal", "postpartum", "post partum", "pre and postnatal", "pregnancy", "pregnancy fitness", "pregnancy coach", "mom fitness", "new mom", "diastasis recti", "pelvic floor", "core rehab", "birth prep", "birth doula", "fertility", "ttc", "conception", "menopause", "perimenopause", "women's health", "womens health", "womens wellness", "acupuncture", "chinese medicine", "tcm", "qigong", "tai chi", "sibo", "parenting", "makeup", "aesthetics", "beauty"]
+      },
+      "spiritual": {
+        "level": "medium",
+        "weight": 2,
+        "words": ["spiritual", "spirituality", "healer", "healing", "energy healer", "energy work", "reiki", "reiki master", "chakra", "chakras", "aura", "meditation", "mindfulness", "manifest", "manifestation", "law of attraction", "astrology", "tarot", "tarot reading", "numerology", "psychic", "intuitive", "clairvoyant", "angel", "angels", "cosmic", "soulful", "shaman", "shamanic", "breathwork", "sound healing", "sound bath", "crystal", "crystals", "gemstone", "vastu", "pooja", "puja", "mantra", "guru", "swami", "yogi", "bhakti", "karma", "dharma", "ayurveda", "kundalini", "awakening", "ascension", "lightworker", "witch", "pagan", "ritual", "retreat", "ashram", "sacred", "inner peace", "inner child", "shadow work", "subconscious", "hypnotherapy", "past life", "akashic", "mindset"]
+      },
+      "funnel": {
+        "level": "medium",
+        "weight": 2,
+        "words": ["free guide", "free ebook", "free download", "newsletter", "community", "join my", "join our", "join us", "waitlist", "apply now", "apply here", "grow your", "scale your", "6 figure", "7 figure", "six figure", "seven figure", "link below", "click below", "tap below", "launch"]
+      },
+      "weak": {
+        "level": "weak",
+        "weight": 1,
+        "words": ["soul", "universe", "medium", "oracle", "stress", "sleep", "organic", "diet", "divine", "energy", "mom", "mum", "mama", "birth", "career", "confidence", "finance", "sales", "english", "language", "author", "podcast"]
+      },
+      "weak_alone": {
+        "level": "weak",
+        "weight": 1,
+        "only_without_other_signals": true,
+        "words": ["link in bio", "dm", "dms", "collab", "dm for collab"]
+      }
+    },
+    "page_types": ["fan page", "fanpage", "fan account", "meme", "memes", "meme page", "news page", "breaking news", "daily news", "quotes page", "quote page", "daily quotes", "giveaway", "giveaways", "repost", "reposts", "backup account", "parody"],
+    "industry_tags": [
+      {
+        "tag": "Doctor / Clinical",
+        "words": ["dr", "md", "doctor", "physician", "dentist", "dental", "dermatologist", "mbbs", "bams", "bhms", "bds", "clinic", "hospital", "medical", "pharmacy", "pediatrician", "gynecologist", "cardiologist", "ortho", "nurse", "physiotherapist", "physio", "physiotherapy", "chiropractor", "chiropractic", "psychiatrist"]
+      },
+      {
+        "tag": "Beauty",
+        "words": ["salon", "makeup", "makeup artist", "mua", "skincare", "skin care", "aesthetics", "aesthetician", "esthetician", "hair care", "hair stylist", "stylist", "nail artist", "beauty"]
+      },
+      {
+        "tag": "Spiritual / Healing",
+        "groups": ["spiritual"]
+      },
+      {
+        "tag": "Health & Wellness",
+        "groups": ["health"],
+        "words": ["nutritionist", "dietitian", "personal trainer", "yoga teacher", "gym", "therapist", "psychotherapist", "psychologist", "counselor", "counsellor", "doula", "lactation consultant", "sleep consultant", "naturopath", "homeopath", "acupuncturist", "hypnotherapist", "speech therapist", "occupational therapist", "pregnancy coach", "health coach"]
+      },
+      {
+        "tag": "Education / Coaching",
+        "groups": ["coaching_education"]
+      },
+      {
+        "tag": "Business / Consulting",
+        "groups": ["business"]
+      }
+    ],
+    "fallback_tag": "Other Professional Service",
+    "review_folder": "output/review"
+  },
+  "target_niches": ["manifestation coach", "tarot reader", "parenting coach", "postpartum coach", "profit coach", "numerologist", "nutritionist", "fitness coach", "dietitian", "yoga teacher", "doctor", "vastu consultant", "interior designer", "architect", "finance coach", "business coach", "life coach", "personal development coach", "career coach", "sales coach", "product launch coach", "english speaking teacher", "language teacher", "image consultant", "psychologist", "psychiatrist", "makeup artist", "dermatologist", "pcos coach", "menopause coach", "women's coach", "energy coach"],
   "scoring": {
     "use_local_llm": true,
     "ollama_url": "http://localhost:11434/api/generate",
@@ -49,7 +122,6 @@
     "require_person": false,
     "reject_other_niche": true
   },
-
   "verification": {
     "provider": "bouncify",
     "api_url": "https://api.bouncify.io/v1/verify",
@@ -57,15 +129,12 @@
     "send_results": ["deliverable"],
     "send_accept_all": false
   },
-
   "website_finder": {
     "enabled": true,
     "timeout_seconds": 8,
     "pages": ["", "/contact", "/contact-us", "/about"]
   },
-
   "first_name_fallback": "there",
-
   "personalisation": {
     "enabled": false,
     "ollama_url": "http://localhost:11434/api/generate",
@@ -74,7 +143,6 @@
     "fallback_line": "I was looking at a few {niche} accounts and yours was one that really stood out.",
     "podcast_fallback_line": "I was looking at a few {niche} podcasts and yours was one that really stood out."
   },
-
   "podcasts": {
     "keywords": [],
     "countries": ["US", "GB", "AU", "CA"],
@@ -83,14 +151,10 @@
     "seconds_between_searches": 3.5,
     "active_days": 60,
     "min_episodes": 5,
-    "skip_email_domains": ["anchor.fm", "spotify", "podbean", "buzzsprout", "libsyn", "soundcloud", "redcircle",
-                           "acast", "megaphone", "simplecast", "transistor", "captivate", "podcastle", "spreaker",
-                           "audioboom", "riverside", "zencast", "rss.com", "castos", "blubrry", "omny", "iheart",
-                           "fireside", "podomatic", "pinecast", "example.com"],
+    "skip_email_domains": ["anchor.fm", "spotify", "podbean", "buzzsprout", "libsyn", "soundcloud", "redcircle", "acast", "megaphone", "simplecast", "transistor", "captivate", "podcastle", "spreaker", "audioboom", "riverside", "zencast", "rss.com", "castos", "blubrry", "omny", "iheart", "fireside", "podomatic", "pinecast", "example.com"],
     "campaign_name_contains": "(New-mails)",
     "row_label": "Agent podcast ({date})"
   },
-
   "instantly": {
     "api_base": "https://api.instantly.ai",
     "campaign_rule": "Use the newest campaign whose name contains the marker, only if it is still a Draft (not started) and was created recently. Otherwise stop and ask the team to duplicate a new campaign first.",

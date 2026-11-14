@@ -1,7 +1,7 @@
 # Lead Agent
 
-IG Email Extractor CSV → clean & dedupe → website email finder → fit score (local AI) →
-Bouncify check → personalised first line (local AI) → Instantly campaign → Cold Email sheet.
+IG Email Extractor CSV → clean & dedupe → keyword rules (KEEP / MAYBE / REMOVE) → website email finder →
+AI check of MAYBE leads only (local AI) → Bouncify check → Instantly campaign → Cold Email sheet.
 
 Full guide: `docs/Lead Agent - Team Setup and Dry Run Guide.docx`
 
@@ -64,6 +64,20 @@ email (not a hosting company address) and are not in the master sheet. It saves 
 - Settings in `config.json` → `podcasts`: countries, active days, minimum episodes, skipped email domains,
   the campaign marker for podcast leads and the master-sheet label.
 - If `podcasts.campaign_name_contains` differs from the Instagram marker, run podcast and Instagram files separately.
+
+## Keyword rules (KEEP / MAYBE / REMOVE)
+
+Every lead is scored on its bio, display name, username (and Instagram category, if the export has it) with the
+word lists in `config.json` → `classification`. No AI is used for this, so it is instant.
+
+- Strong words +3 each (max 6): offers, coaching, business, professional titles. Medium +2 (max 4): health,
+  spiritual, funnel, a service category. Weak +1 (max 2).
+- **KEEP**: score 3+ with at least one niche word. Goes straight on, no AI call.
+- **MAYBE**: score 1-2, or only offer/business words, or a fan/meme page that also offers something. The AI
+  checks these; the ones it doesn't approve are saved in `output/review/review-....csv` for a person to look at.
+- **REMOVE**: no service word at all.
+
+Each word belongs to one list only. Set `ai_reviews_maybe` to `false` to send every MAYBE lead to the review file.
 
 ## Updates
 

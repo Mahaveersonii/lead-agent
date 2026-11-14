@@ -7,6 +7,7 @@ import re
 
 import requests
 
+from .classifier import Classifier
 from .common import EMAIL_RE, Lead
 
 OBFUSCATED_AT = re.compile(r"\s*[\[\(\{]\s*at\s*[\]\)\}]\s*", re.I)
@@ -43,22 +44,10 @@ def load_master_sheet(cfg: dict) -> tuple[set, set]:
     return emails, usernames
 
 
-def keyword_pattern(words: list[str]) -> re.Pattern:
-    """Whole-word match, so 'pr' does not hit 'product' and 'dr' does not hit 'drink'."""
-    # a hyphen or space in a keyword matches either, so "makeup-artist" also hits "makeup artist"
-    parts = sorted({re.escape(w).replace(r"\-", "[-\s]?").replace(r"\ ", "[-\s]") for w in words}, key=len, reverse=True)
-    return re.compile(r"(?<![a-z0-9])(" + "|".join(parts) + r")(?![a-z0-9])", re.I)
-
-
-def matched_keywords(lead: Lead, pattern: re.Pattern) -> list[str]:
-    text = f"{lead.full_name} {lead.biography} {re.sub(r'[._]', ' ', lead.username)}"
-    return sorted({m.lower() for m in pattern.findall(text)})
-
-
 def clean(leads: list[Lead], cfg: dict, used_emails: set, used_usernames: set) -> list[Lead]:
     filters = cfg["filters"]
     reject_words = [w.lower() for w in filters["reject_bio_keywords"]]
-    include = keyword_pattern([w for group in cfg["include_bio_keywords"].values() for w in group])
+    classifier = Classifier(cfg)
     seen_emails, seen_users = set(), set()
     # "email" follows the team's sheet rule; "email_and_username" also skips accounts already contacted on another email
     check_usernames = cfg["master_sheet"].get("dedupe_by", "email") == "email_and_username"
@@ -70,7 +59,7 @@ def clean(leads: list[Lead], cfg: dict, used_emails: set, used_usernames: set) -
             if from_bio:
                 lead.email, lead.email_source = from_bio, "bio"
 
-        bio = lead.biography.lower()
+        bio = f"{lead.full_name} {lead.biography}".lower()
         if check_usernames and lead.username in used_usernames:
             lead.reject("already in master sheet (username)")
         elif lead.email and lead.email in used_emails:
@@ -84,11 +73,13 @@ def clean(leads: list[Lead], cfg: dict, used_emails: set, used_usernames: set) -
         elif lead.source != "podcast" and lead.followers > filters["max_followers"]:
             lead.reject(f"followers above {filters['max_followers']}")
         elif any(word in bio for word in reject_words):
-            lead.reject("bio matches excluded type (agency / fan page / competitor)")
-        elif cfg["include_keywords_required"] and not matched_keywords(lead, include):
-            lead.reject("no target keyword in name or bio")
+            lead.reject("name or bio matches excluded type (marketing agency / competitor)")
         else:
-            lead.status = "Clean"
+            classifier.classify(lead)
+            if lead.decision == "REMOVE":
+                lead.reject(f"REMOVE: {lead.rule_reason}")
+            else:
+                lead.status = "Clean"
 
         seen_users.add(lead.username)
         if lead.email:
