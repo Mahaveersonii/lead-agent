@@ -31,6 +31,8 @@ def ask_json(prompt: str, schema: dict, cfg: dict) -> dict:
             max_tokens=settings["max_tokens"],
             output_config={"effort": settings["effort"],
                            "format": {"type": "json_schema", "schema": schema}},
+            # thinking off: these are short yes/no style answers, and thinking tokens are billed as output
+            **({} if settings.get("thinking") else {"thinking": {"type": "disabled"}}),
             messages=[{"role": "user", "content": prompt}],
         )
     except anthropic.AuthenticationError:
@@ -52,8 +54,13 @@ def ask_json(prompt: str, schema: dict, cfg: dict) -> dict:
 
 
 def check_access(cfg: dict) -> str:
-    """Tiny test call used by the setup check and the run pre-check."""
-    ask_json('Reply with JSON {"ok": true}.',
-             {"type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"], "additionalProperties": False},
-             cfg)
+    """Checks the key and the model with a free model lookup (no tokens are used)."""
+    try:
+        _get_client().models.retrieve(cfg["ai"]["model"])
+    except anthropic.AuthenticationError:
+        raise AIUnavailable("the Claude API key in .env is wrong or was deleted")
+    except anthropic.NotFoundError:
+        raise AIUnavailable(f"model {cfg['ai']['model']} is not available to this key")
+    except anthropic.APIConnectionError:
+        raise AIUnavailable("could not reach the Claude API. Check the internet connection")
     return f"key works, model {cfg['ai']['model']}"
