@@ -4,9 +4,7 @@ from __future__ import annotations
 import os
 import sys
 
-import requests
-
-from lead_agent import sender, sheet_writer, verifier
+from lead_agent import ai, sender, sheet_writer, verifier
 from lead_agent.common import ROOT, load_config, load_env
 
 OK, FAIL = "  [OK]  ", "  [FIX] "
@@ -28,17 +26,13 @@ def main() -> None:
     print("\nChecking the Lead Agent setup...\n")
 
     def keys():
-        missing = [k for k in ("INSTANTLY_API_KEY", "BOUNCIFY_API_KEY", "MASTER_SHEET_ID") if not os.environ.get(k)]
+        missing = [k for k in ("INSTANTLY_API_KEY", "ANTHROPIC_API_KEY", "BOUNCIFY_API_KEY", "MASTER_SHEET_ID") if not os.environ.get(k)]
         if missing:
             raise RuntimeError(f"missing in .env: {', '.join(missing)}")
-        return "Instantly key, Bouncify key and master sheet ID found"
+        return "Instantly, Claude and Bouncify keys and master sheet ID found"
 
-    def ollama():
-        url = cfg["scoring"]["ollama_url"].replace("/api/generate", "/api/tags")
-        names = [m["name"] for m in requests.get(url, timeout=5).json()["models"]]
-        if not any(n.startswith(cfg["scoring"]["ollama_model"]) for n in names):
-            raise RuntimeError(f"Ollama is running but the model is missing. Run: ollama pull {cfg['scoring']['ollama_model']}")
-        return f"running, {cfg['scoring']['ollama_model']} installed"
+    def claude():
+        return ai.check_access(cfg)
 
     def instantly():
         campaigns = sender.list_campaigns(cfg)
@@ -58,7 +52,7 @@ def main() -> None:
 
     results = [
         check("API keys", keys),
-        check("Ollama (local AI)", ollama),
+        check("Claude AI", claude) if os.environ.get("ANTHROPIC_API_KEY") else False,
         check("Instantly", instantly) if os.environ.get("INSTANTLY_API_KEY") else False,
         check("Bouncify", bouncify) if os.environ.get("BOUNCIFY_API_KEY") else False,
         check("Google master sheet", sheet),

@@ -1,3 +1,4 @@
 gspread>=6.1
 requests>=2.32
 cryptography>=42
+anthropic>=0.75,<2

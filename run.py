@@ -5,7 +5,7 @@ Usage:
     python run.py --verify        test run that also checks emails on Bouncify (uses credits)
     python run.py --live          real run: Bouncify, Instantly and the master sheet
 Options:
-    --no-llm      skip Ollama: KEEP leads still go through, MAYBE leads go to the review file
+    --no-llm      skip the Claude AI check: KEEP leads still go through, MAYBE leads go to the review file
     --any-day     allow a live run outside the campaign days
     --ignore-sheet  test runs only: skip the master-sheet duplicate check (to test on old files)
 """
@@ -21,7 +21,7 @@ from pathlib import Path
 
 import requests
 
-from lead_agent import clean, intake, personaliser, scorer, sender, sheet_writer, verifier, website_finder
+from lead_agent import ai, clean, intake, personaliser, scorer, sender, sheet_writer, verifier, website_finder
 from lead_agent.common import ROOT, load_config, load_env
 
 
@@ -36,17 +36,21 @@ def preflight(cfg: dict, args, marker: str) -> dict | None:
         if today not in cfg["instantly"]["campaign_days"]:
             sys.exit(f"Today is {today}. New campaigns run only on {', '.join(cfg['instantly']['campaign_days'])}. "
                      "Use --any-day to override.")
-    for key in ("INSTANTLY_API_KEY",) + (("BOUNCIFY_API_KEY",) if args.live or args.verify else ()):
+    needs_ai = not args.no_llm and cfg["ai"]["enabled"]
+    for key in ("INSTANTLY_API_KEY",) + (("ANTHROPIC_API_KEY",) if needs_ai else ()) + (("BOUNCIFY_API_KEY",) if args.live or args.verify else ()):
         if not os.environ.get(key):
             sys.exit(f"{key} is missing in .env")
-    if not args.no_llm:
+    if needs_ai:
         try:
-            requests.get(cfg["scoring"]["ollama_url"].replace("/api/generate", "/api/tags"), timeout=5).raise_for_status()
-        except requests.RequestException:
-            sys.exit("Ollama is not running. Open the Ollama app (or run `ollama serve`), then try again.")
+            log(f"Claude AI: {ai.check_access(cfg)}")
+        except ai.AIUnavailable as problem:
+            sys.exit(f"Claude AI is not ready: {problem}.")
     try:
         campaign = sender.pick_campaign(cfg, marker)
         log(f"Instantly campaign: {campaign['name']}")
+    except requests.RequestException:
+        sys.exit("Could not reach Instantly (internet dropped or Instantly is down). Nothing was processed. "
+                 "Check the Wi-Fi and press LIVE run again.")
     except sender.NoCampaign as problem:
         if args.live:
             sys.exit(str(problem))

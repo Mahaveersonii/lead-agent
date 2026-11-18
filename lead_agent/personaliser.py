@@ -1,12 +1,10 @@
-"""Agents 6 + 7 - Personaliser and Quality Check: local Qwen3 (Ollama) writes and reviews a first line."""
+"""Agents 6 + 7 - Personaliser and Quality Check: Claude (Anthropic API) writes and reviews a first line."""
 from __future__ import annotations
 
-import json
 import random
 import re
 
-import requests
-
+from . import ai
 from .common import Lead, progress
 
 WRITE_PROMPT = """Write the FIRST LINE of a cold email to an Instagram creator.
@@ -35,7 +33,7 @@ Creator:
 - Niche: {niche}
 - Bio: {bio}
 
-Reply ONLY with JSON: {{"line": "<the sentence>"}}"""
+Reply with JSON: "line" = the sentence."""
 
 OPENERS = ["Saw that", "Noticed you", "Really like that you", "Just read that you", "Love how you",
            "It is not every day I see", "Came across your work on", "Your bio mentions"]
@@ -65,7 +63,7 @@ Host:
 - Latest episode title: {episode}
 - About the podcast: {bio}
 
-Reply ONLY with JSON: {{"line": "<the sentence>"}}"""
+Reply with JSON: "line" = the sentence."""
 
 CHECK_PROMPT = """You review a cold-email first line before it is sent.
 
@@ -78,7 +76,7 @@ it is grammatically awkward, it mentions anything (audience, result, place, post
 not written in the bio, it sounds fake or over-flattering, it talks about the sender, it pitches a
 service, it is not one natural sentence, or it could offend.
 
-Reply ONLY with JSON: {{"ok": true or false, "reason": "<max 10 words>"}}"""
+Reply with JSON: "ok" = true or false, "reason" = max 10 words."""
 
 BANNED = ("came across your profile", "hope this finds you", "love your content", "!", "#", "followers",
           "resonat", "holistic", "journey", "deeply", "truly", "inspiring", "passion", "your focus on",
@@ -86,13 +84,10 @@ BANNED = ("came across your profile", "hope this finds you", "love your content"
 EMOJI_RE = re.compile("[\U0001F300-\U0001FAFF☀-➿]")
 
 
-def _ollama(prompt: str, model: str, cfg: dict, max_tokens: int) -> dict:
-    response = requests.post(cfg["personalisation"]["ollama_url"], timeout=300, json={
-        "model": model, "prompt": prompt, "stream": False,
-        "format": "json", "think": False, "options": {"num_predict": max_tokens, "temperature": 0.7},
-    })
-    response.raise_for_status()
-    return json.loads(response.json()["response"])
+LINE_SCHEMA = {"type": "object", "properties": {"line": {"type": "string"}},
+               "required": ["line"], "additionalProperties": False}
+CHECK_SCHEMA = {"type": "object", "properties": {"ok": {"type": "boolean"}, "reason": {"type": "string"}},
+                "required": ["ok", "reason"], "additionalProperties": False}
 
 
 def rule_problems(line: str) -> str:
@@ -124,13 +119,11 @@ def personalise(lead: Lead, cfg: dict) -> None:
                                                  episode=lead.latest_episode or "(unknown)", bio=bio)
         else:
             prompt = WRITE_PROMPT.format(name=lead.full_name, niche=lead.niche, bio=bio, opener=random.choice(OPENERS))
-        line = str(_ollama(prompt,
-                           settings["writer_model"], cfg, 80).get("line", "")).strip().strip('"')
+        line = str(ai.ask_json(prompt, LINE_SCHEMA, cfg).get("line", "")).strip().strip('"')
         problem = rule_problems(line)
         if not problem:
             facts = f"{bio} Latest episode: {lead.latest_episode}" if lead.source == "podcast" else bio
-            review = _ollama(CHECK_PROMPT.format(bio=facts, niche=lead.niche, line=line),
-                             settings["checker_model"], cfg, 40)
+            review = ai.ask_json(CHECK_PROMPT.format(bio=facts, niche=lead.niche, line=line), CHECK_SCHEMA, cfg)
             if review.get("ok") is True:
                 lead.personalization = line if line.endswith((".", "?")) else line + "."
                 return
@@ -151,8 +144,8 @@ def run(leads: list[Lead], cfg: dict, use_llm: bool = True) -> None:
             continue
         try:
             personalise(lead, cfg)
-        except requests.ConnectionError:
-            raise SystemExit("Ollama stopped responding. Restart the Ollama app and run again.")
-        except (requests.RequestException, ValueError, KeyError) as error:
+        except ai.AIUnavailable as problem:
+            raise SystemExit(f"First lines stopped: {problem}.")
+        except (ValueError, KeyError, ai.anthropic.APIError) as error:
             lead.personalization = fallback_line(lead, cfg)
             lead.notes.append(f"LLM personalisation failed, used fallback: {error}")

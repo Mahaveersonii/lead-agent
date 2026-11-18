@@ -1,7 +1,7 @@
 # Lead Agent
 
 IG Email Extractor CSV → clean & dedupe → keyword rules (KEEP / MAYBE / REMOVE) → website email finder →
-AI check of MAYBE leads only (local AI) → Bouncify check → Instantly campaign → Cold Email sheet.
+AI check of MAYBE leads only (Claude API) → Bouncify check → Instantly campaign → Cold Email sheet.
 
 Full guide: `docs/Lead Agent - Team Setup and Dry Run Guide.docx`
 
@@ -22,9 +22,8 @@ winget install -e --id Git.Git; git clone https://github.com/Mahaveersonii/lead-
 The installer:
 1. checks Python (Mac: asks to install Apple's developer tools if missing; Windows: installs Python)
 2. installs the agent's libraries
-3. installs Ollama and downloads the AI model (about 5 GB, first time only)
-4. asks for the passphrase and unlocks the API keys (Instantly, Bouncify, Google)
-5. tests every connection and shows `[OK]` or `[FIX]` for each
+3. asks for the passphrase and unlocks the API keys (Instantly, Claude, Bouncify, Google)
+4. tests every connection and shows `[OK]` or `[FIX]` for each
 
 Running it again is safe. It skips anything already done.
 
@@ -46,7 +45,7 @@ The page works only on this computer.
 4. Check the campaign in Instantly (preview 2-3 leads), then start it.
 
 The live run does every check itself: duplicates, filters, AI fit, Bouncify and first lines.
-It stops without sending if there is no fresh Draft `(New-mails)` campaign, Ollama is not running,
+It stops without sending if there is no fresh Draft `(New-mails)` campaign, the Claude API key is missing or out of credit,
 Bouncify credits run out, or today is not in `instantly.campaign_days` in config.json (all 7 days by default; remove days there to limit it). A report of every lead is saved in `output/`.
 
 **2 - Test run** is optional: use it once after setup, or after rules change. It sends nothing.

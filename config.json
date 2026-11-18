@@ -113,10 +113,13 @@
     "review_folder": "output/review"
   },
   "target_niches": ["manifestation coach", "tarot reader", "parenting coach", "postpartum coach", "profit coach", "numerologist", "nutritionist", "fitness coach", "dietitian", "yoga teacher", "doctor", "vastu consultant", "interior designer", "architect", "finance coach", "business coach", "life coach", "personal development coach", "career coach", "sales coach", "product launch coach", "english speaking teacher", "language teacher", "image consultant", "psychologist", "psychiatrist", "makeup artist", "dermatologist", "pcos coach", "menopause coach", "women's coach", "energy coach"],
+  "ai": {
+    "enabled": true,
+    "model": "claude-opus-5-5",
+    "effort": "low",
+    "max_tokens": 4000
+  },
   "scoring": {
-    "use_local_llm": true,
-    "ollama_url": "http://localhost:11434/api/generate",
-    "ollama_model": "qwen3:8b",
     "min_score": 6,
     "tier_a_score": 8,
     "require_person": false,
@@ -137,9 +140,6 @@
   "first_name_fallback": "there",
   "personalisation": {
     "enabled": false,
-    "ollama_url": "http://localhost:11434/api/generate",
-    "writer_model": "qwen3:8b",
-    "checker_model": "qwen3:8b",
     "fallback_line": "I was looking at a few {niche} accounts and yours was one that really stood out.",
     "podcast_fallback_line": "I was looking at a few {niche} podcasts and yours was one that really stood out."
   },

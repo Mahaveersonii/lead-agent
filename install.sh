@@ -4,7 +4,7 @@ set -e
 cd "$(dirname "$0")"
 say() { printf "\n\033[1m== %s\033[0m\n" "$1"; }
 
-say "1/5  Python"
+say "1/4  Python"
 if ! command -v python3 >/dev/null || ! python3 -c "import sys; sys.exit(sys.version_info < (3, 9))"; then
   echo "Python 3 is missing. A window will ask to install Apple's developer tools: click Install, wait, then run this command again."
   xcode-select --install || true
@@ -12,7 +12,7 @@ if ! command -v python3 >/dev/null || ! python3 -c "import sys; sys.exit(sys.ver
 fi
 python3 --version
 
-say "2/5  Agent libraries"
+say "2/4  Agent libraries"
 [ -d .venv ] || python3 -m venv .venv
 .venv/bin/python -m pip install -q --upgrade pip
 .venv/bin/python -m pip install -q --prefer-binary -r requirements.txt
@@ -20,32 +20,11 @@ mkdir -p Leads/Incoming Leads/Processed output secrets
 chmod +x ./*.command
 echo "Installed."
 
-say "3/5  Ollama (local AI)"
-OLLAMA=$(command -v ollama || true)
-[ -z "$OLLAMA" ] && [ -x /Applications/Ollama.app/Contents/Resources/ollama ] && OLLAMA=/Applications/Ollama.app/Contents/Resources/ollama
-if [ -z "$OLLAMA" ]; then
-  echo "Downloading Ollama from ollama.com..."
-  TMP=$(mktemp -d)
-  curl -fL --progress-bar https://ollama.com/download/Ollama-darwin.zip -o "$TMP/Ollama.zip"
-  ditto -xk "$TMP/Ollama.zip" /Applications
-  rm -rf "$TMP"
-  OLLAMA=/Applications/Ollama.app/Contents/Resources/ollama
-fi
-open /Applications/Ollama.app 2>/dev/null || open -a Ollama 2>/dev/null || true
-for _ in $(seq 1 30); do curl -s localhost:11434/api/tags >/dev/null && break; sleep 2; done
-if ! curl -s localhost:11434/api/tags >/dev/null; then
-  echo "Starting the Ollama engine directly..."
-  nohup "$OLLAMA" serve >/dev/null 2>&1 &
-  for _ in $(seq 1 30); do curl -s localhost:11434/api/tags >/dev/null && break; sleep 2; done
-fi
-echo "Downloading the AI model (about 5 GB, only the first time)..."
-"$OLLAMA" pull qwen3:8b
-
-say "4/5  API keys"
+say "3/4  API keys"
 [ -f .env ] || cp .env.example .env
 .venv/bin/python keys_vault.py unlock
 
-say "5/5  Checking everything"
+say "4/4  Checking everything"
 .venv/bin/python -W ignore check_setup.py || true
 
 echo

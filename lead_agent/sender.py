@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+import time
 from datetime import datetime, timezone
 
 import requests
@@ -17,12 +18,28 @@ def _headers() -> dict:
     return {"Authorization": f"Bearer {os.environ['INSTANTLY_API_KEY']}"}
 
 
+def _request(method: str, url: str, **kwargs) -> requests.Response:
+    """Instantly call that retries short network drops ("connection reset", timeouts, 429/5xx)."""
+    for attempt in range(4):
+        try:
+            response = requests.request(method, url, headers=_headers(), **kwargs)
+            if response.status_code in (429, 500, 502, 503, 504) and attempt < 3:
+                time.sleep(5 * (attempt + 1))
+                continue
+            response.raise_for_status()
+            return response
+        except (requests.ConnectionError, requests.Timeout):
+            if attempt == 3:
+                raise
+            time.sleep(5 * (attempt + 1))
+    raise RuntimeError("unreachable")
+
+
 def list_campaigns(cfg: dict) -> list[dict]:
     base, items, after = cfg["instantly"]["api_base"], [], None
     while True:
         params = {"limit": 100, **({"starting_after": after} if after else {})}
-        response = requests.get(f"{base}/api/v2/campaigns", params=params, headers=_headers(), timeout=30)
-        response.raise_for_status()
+        response = _request("GET", f"{base}/api/v2/campaigns", params=params, timeout=30)
         data = response.json()
         items += data.get("items", [])
         after = data.get("next_starting_after")
@@ -72,12 +89,12 @@ def run(leads: list[Lead], cfg: dict, campaign: dict, dry_run: bool = True) -> d
         return summary
     for start in range(0, len(ready), settings["batch_size"]):
         batch = ready[start:start + settings["batch_size"]]
-        response = requests.post(f"{settings['api_base']}/api/v2/leads/add", headers=_headers(), timeout=120, json={
+        # a retried batch is safe: skip_if_in_workspace stops the same lead being added twice
+        response = _request("POST", f"{settings['api_base']}/api/v2/leads/add", timeout=120, json={
             "campaign_id": campaign["id"],
             "skip_if_in_workspace": settings["skip_if_in_workspace"],
             "leads": [_payload(lead, cfg) for lead in batch],
         })
-        response.raise_for_status()
         data = response.json()
         summary["uploaded"] += int(data.get("leads_uploaded", 0))
         summary["duplicates"] += int(data.get("duplicated_leads", 0))

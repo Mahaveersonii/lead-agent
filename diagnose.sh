@@ -1,5 +1,5 @@
 #!/bin/bash
-# Lead Agent health check. Collects machine, Ollama and last-run details into one text file
+# Lead Agent health check. Collects machine, AI and last-run details into one text file
 # so problems can be diagnosed remotely. It never reads keys.vault, .env or any API key.
 #
 #   bash diagnose.sh
@@ -24,37 +24,16 @@ git status --short 2>/dev/null | grep -v '^??' | head -10
 echo "Python:  $($PY --version 2>&1)"
 echo
 echo "--- 3. Running now ---"
-ps ax -o pid,etime,%cpu,%mem,command | grep -E "run.py|dashboard.py|ollama" | grep -v grep || echo "nothing running"
+ps ax -o pid,etime,%cpu,%mem,command | grep -E "run.py|dashboard.py" | grep -v grep || echo "nothing running"
 echo
-echo "--- 4. Ollama ---"
-if curl -s -m 5 localhost:11434/api/tags >/dev/null; then
-  echo "Ollama engine: RUNNING"
-  curl -s localhost:11434/api/version; echo
-  echo "Models installed:"
-  curl -s localhost:11434/api/tags | python3 -c "import sys,json;[print('  ',m['name'],round(m['size']/1e9,1),'GB') for m in json.load(sys.stdin)['models']]"
-  echo "Loaded in memory:"
-  curl -s localhost:11434/api/ps | python3 -c "import sys,json;d=json.load(sys.stdin)['models'];[print('  ',m['name'],'GPU part:',round(m.get('size_vram',0)/1e9,1),'GB of',round(m['size']/1e9,1),'GB') for m in d] or print('   none')"
-  echo
-  echo "Speed test (one lead-sized AI answer, please wait up to 5 minutes)..."
-  START=$(date +%s)
-  curl -s -m 300 localhost:11434/api/generate -d '{"model":"qwen3:8b","prompt":"Reply ONLY with JSON {\"score\": <0-10>, \"reason\": \"<10 words>\"} for this lead: yoga teacher in Mumbai who sells online classes.","stream":false,"format":"json","think":false,"options":{"num_predict":60}}' \
-    | python3 -c "
-import sys,json
-try:
-    d=json.load(sys.stdin)
-    if 'error' in d: print('  ERROR:', d['error']); raise SystemExit
-    tps=d['eval_count']/(d['eval_duration']/1e9)
-    print('  Answer:', d['response'].strip()[:120])
-    print('  Model load time: %.1f s' % (d.get('load_duration',0)/1e9))
-    print('  Total time for one lead: %.1f s' % (d['total_duration']/1e9))
-    print('  Speed: %.1f tokens/s  (12+ good, 6-12 OK, under 6 slow)' % tps)
-except (ValueError, KeyError) as e:
-    print('  No answer from the model within 5 minutes or bad reply:', e)
+echo "--- 4. Claude AI ---"
+$PY -W ignore -c "
+from lead_agent.common import load_env, load_config
+from lead_agent import ai
+load_env()
+try: print('  Claude AI:', ai.check_access(load_config()))
+except Exception as e: print('  Claude AI problem:', e)
 "
-  echo "  (wall clock: $(( $(date +%s) - START )) s)"
-else
-  echo "Ollama engine: NOT RUNNING  <-- open the Ollama app, then run this check again"
-fi
 echo
 echo "--- 5. Last run log ---"
 LAST=$(ls -t output/logs/*.log 2>/dev/null | head -1)
