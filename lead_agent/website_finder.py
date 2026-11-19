@@ -6,7 +6,7 @@ from urllib.parse import urljoin, urlparse
 
 import requests
 
-from .common import EMAIL_RE, Lead
+from .common import EMAIL_RE, Lead, progress
 
 SKIP_HOSTS = (
     "instagram.com", "facebook.com", "fb.me", "youtube.com", "youtu.be", "wa.me", "whatsapp.com",
@@ -63,8 +63,9 @@ def find_email(lead: Lead, cfg: dict) -> None:
 def run(leads: list[Lead], cfg: dict) -> None:
     if not cfg["website_finder"]["enabled"]:
         return
-    for lead in leads:
-        if not lead.rejected and not lead.email:
-            find_email(lead, cfg)
-            if not lead.email:
-                lead.reject("no email found (profile, bio or website)")
+    todo = [lead for lead in leads if not lead.rejected and not lead.email]
+    for done, lead in enumerate(todo, 1):
+        find_email(lead, cfg)
+        if not lead.email:
+            lead.reject("no email found (profile, bio or website)")
+        progress("Website email finder", done, len(todo))
