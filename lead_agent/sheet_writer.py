@@ -46,3 +46,36 @@ def run(leads: list[Lead], cfg: dict, dry_run: bool = True) -> list[list]:
     next_row = len(ws.col_values(cfg["master_sheet"]["email_column"] + 1)) + 1  # first empty row in column D
     ws.update(rows, f"A{next_row}:F{next_row + len(rows) - 1}", value_input_option="USER_ENTERED")
     return rows
+
+
+VERIFIED_HEADER = ["Checked on", "Name", "Niche", "Email", "Followers", "Profile URL", "Bouncify result"]
+
+
+def save_verified(leads: list[Lead], cfg: dict) -> int:
+    """Checkpoint right after Bouncify: add the clean, verified leads to the "Verified" tab.
+
+    This is a separate tab on purpose: the Cold Email tab is the "already used" list, so leads put there
+    before they reach Instantly would be skipped as duplicates on the next run and never sent.
+    """
+    verified = [lead for lead in leads if lead.status == "Verified"]
+    if not verified:
+        return 0
+    sheet = cfg["master_sheet"]
+    client = gspread.service_account(filename=str(ROOT / sheet["service_account_file"]))
+    book = client.open_by_key(sheet["spreadsheet_id"])
+    tab_name = sheet.get("verified_tab", "Verified")
+    try:
+        ws = book.worksheet(tab_name)
+    except gspread.WorksheetNotFound:
+        ws = book.add_worksheet(tab_name, rows=1000, cols=len(VERIFIED_HEADER))
+        ws.append_row(VERIFIED_HEADER)
+    already = {value.strip().lower() for value in ws.col_values(4)}  # column D = Email; a rerun adds no duplicates
+    verified = [lead for lead in verified if lead.email.lower() not in already]
+    if not verified:
+        return 0
+    today = date.today().strftime("%d/%b/%Y")
+    ws.append_rows([[today, lead.first_name or lead.full_name, lead.niche, lead.email,
+                     "" if lead.source == "podcast" else lead.followers,
+                     lead.profile_url or f"https://www.instagram.com/{lead.username}", lead.verification]
+                    for lead in verified], value_input_option="USER_ENTERED")
+    return len(verified)

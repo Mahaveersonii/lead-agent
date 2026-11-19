@@ -162,6 +162,13 @@ def main() -> None:
     except verifier.OutOfCredits as problem:
         sys.exit(str(problem))
     log(f"After email verification: {sum(not l.rejected for l in leads)} left")
+    if args.live and cfg["master_sheet"]["auto_write"]:
+        try:
+            saved = sheet_writer.save_verified(leads, cfg)
+            log(f"Checkpoint: {saved} verified leads saved to the '{cfg['master_sheet'].get('verified_tab', 'Verified')}' "
+                "tab of the master sheet")
+        except Exception as problem:  # the checkpoint must never stop the run
+            log(f"Checkpoint to the master sheet failed ({problem}). Continuing; Bouncify answers are saved on this computer")
 
     personaliser.run(leads, cfg, use_llm=not args.no_llm)
     log("First lines written" if cfg["personalisation"]["enabled"] else "First lines: off (fixed template), skipped")

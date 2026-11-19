@@ -14,7 +14,7 @@ from .common import ROOT, Lead, progress
 
 CACHE_FILE = ROOT / "output" / "verify_cache.json"
 CACHE_DAYS = 30                                   # a result older than this is checked again
-CACHEABLE = {"deliverable", "undeliverable"}      # clear answers only; unknown/accept-all are re-checked
+NOT_CACHED = {"error"}                            # every paid answer is kept; only network failures are re-checked
 WORKERS = 4                                       # emails checked at the same time
 
 
@@ -90,7 +90,9 @@ def _load_cache() -> dict:
 
 def _save_cache(cache: dict) -> None:
     CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    CACHE_FILE.write_text(json.dumps(cache, indent=0), encoding="utf-8")
+    temp = CACHE_FILE.with_suffix(".tmp")
+    temp.write_text(json.dumps(cache, indent=0), encoding="utf-8")
+    temp.replace(CACHE_FILE)  # never leaves a half-written file if the run is stopped mid-save
 
 
 def run(leads: list[Lead], cfg: dict, enabled: bool = True) -> None:
@@ -132,8 +134,9 @@ def run(leads: list[Lead], cfg: dict, enabled: bool = True) -> None:
             except requests.RequestException as error:
                 lead.verification = "error"
                 lead.notes.append(f"Bouncify error: {error}")
-            if lead.verification in CACHEABLE:
+            if lead.verification not in NOT_CACHED:
                 cache[lead.email.lower()] = {"result": lead.verification, "checked": datetime.now().isoformat()}
+                _save_cache(cache)  # saved after every paid answer, so a stopped run never pays for it again
             done += 1
             progress("Email check (Bouncify)", done, len(to_check))
             if stop:

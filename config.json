@@ -13,6 +13,7 @@
     "worksheet_gid": 1140298674,
     "service_account_file": "secrets/google_service_account.json",
     "row_label": "Agent ({date})",
+    "verified_tab": "Verified",
     "dedupe_by": "email"
   },
   "filters": {
